@@ -24,38 +24,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCheckout = document.getElementById('btn-checkout');
 
   const ptabs = document.querySelectorAll('.vc-ptab');
-  const chkAspect = document.getElementById('chk-aspect');
-  const rowAspectSelect = document.getElementById('row-aspect-select');
   const selAspect = document.getElementById('sel-aspect');
-  const chkSubModifier = document.getElementById('chk-sub-modifier');
-  const rowSubSelect = document.getElementById('row-sub-select');
   const selSubPos = document.getElementById('sel-sub-pos');
+  const selDimmer = document.getElementById('sel-dimmer');
   const chkAdwarp = document.getElementById('chk-adwarp');
   const chkBinge = document.getElementById('chk-binge');
   const chkYtTheater = document.getElementById('chk-yt-theater');
   const chkYtShorts = document.getElementById('chk-yt-shorts');
-  const selDimmer = document.getElementById('sel-dimmer');
+  const btnReset = document.getElementById('btn-reset-settings');
 
   let currentPlatform = 'global';
 
   // 1. Sync License State
   async function updateLicenseUI() {
     const licState = await VeloxLicense.getState();
-    if (emailElem) emailElem.textContent = licState.userEmail || 'free_viewer@veloxcine.app';
+    if (emailElem) emailElem.textContent = licState.userEmail || 'forgestratum@gmail.com';
 
     if (licState.isPremium) {
-      tierBadge.textContent = 'LIFETIME PRO';
-      tierBadge.classList.add('premium');
-      devToggle.checked = true;
-      devState.textContent = 'Premium';
-      devState.style.color = '#fbbf24';
+      if (tierBadge) {
+        tierBadge.textContent = 'LIFETIME PRO';
+        tierBadge.classList.add('premium');
+      }
+      if (devToggle) devToggle.checked = true;
+      if (devState) {
+        devState.textContent = 'Premium';
+        devState.style.color = '#fbbf24';
+      }
       if (btnUpgrade) btnUpgrade.style.display = 'none';
     } else {
-      tierBadge.textContent = 'FREE TIER';
-      tierBadge.classList.remove('premium');
-      devToggle.checked = false;
-      devState.textContent = 'Free';
-      devState.style.color = '#94a3b8';
+      if (tierBadge) {
+        tierBadge.textContent = 'FREE TIER';
+        tierBadge.classList.remove('premium');
+      }
+      if (devToggle) devToggle.checked = false;
+      if (devState) {
+        devState.textContent = 'Free';
+        devState.style.color = '#94a3b8';
+      }
       if (btnUpgrade) btnUpgrade.style.display = 'inline-block';
     }
   }
@@ -64,84 +69,96 @@ document.addEventListener('DOMContentLoaded', async () => {
   VeloxLicense.onLicenseChanged(updateLicenseUI);
 
   // 2. Dev Tier Toggle
-  devToggle.addEventListener('change', async (e) => {
-    await VeloxLicense.setDevTier(e.target.checked);
-    await updateLicenseUI();
-    licenseMsg.textContent = e.target.checked
-      ? '⚡ Dev Mode: Lifetime Premium Activated'
-      : '⚡ Dev Mode: Free Tier Activated';
-    licenseMsg.className = 'vc-msg success';
-  });
-
-  // 3. License Key Activation
-  btnActivate.addEventListener('click', async () => {
-    const key = licenseInput.value.trim();
-    licenseMsg.textContent = 'Verifying key...';
-    licenseMsg.className = 'vc-msg';
-
-    const res = await VeloxLicense.activateLicenseKey(emailElem ? emailElem.textContent : '', key);
-    if (res.success) {
-      licenseMsg.textContent = res.message;
-      licenseMsg.className = 'vc-msg success';
+  if (devToggle) {
+    devToggle.addEventListener('change', async (e) => {
+      await VeloxLicense.setDevTier(e.target.checked);
       await updateLicenseUI();
-    } else {
-      licenseMsg.textContent = res.message;
-      licenseMsg.className = 'vc-msg error';
-    }
-  });
-
-  // 4. Check Active Tab Status
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.id) {
-      chrome.tabs.sendMessage(tab.id, { action: 'PING' }, (res) => {
-        if (chrome.runtime.lastError || !res) {
-          statusDot.classList.remove('active');
-          statusText.textContent = 'No streaming video in active tab';
-        } else {
-          statusDot.classList.add('active');
-          const pName = res.platform ? res.platform.toUpperCase() : 'HTML5';
-          statusText.textContent = `Connected: ${pName} Player (${res.videoBound ? 'Video Active' : 'Waiting for video'})`;
-        }
-      });
-    }
-  } catch (e) {
-    statusText.textContent = 'Ready for playback';
-  }
-
-  // 5. Trigger Buttons
-  if (btnToggleDimmer) {
-    btnToggleDimmer.addEventListener('click', async () => {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.id) {
-        chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_DIMMER' }).catch(() => {});
+      if (licenseMsg) {
+        licenseMsg.textContent = e.target.checked
+          ? '⚡ Testing Mode: Lifetime Premium Activated'
+          : '⚡ Testing Mode: Free Tier Activated';
+        licenseMsg.className = 'vc-msg success';
       }
     });
   }
 
-  btnCycleAspect.addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // 3. License Key Activation
+  if (btnActivate) {
+    btnActivate.addEventListener('click', async () => {
+      const key = licenseInput ? licenseInput.value.trim() : '';
+      if (!key) return;
+      if (licenseMsg) {
+        licenseMsg.textContent = 'Verifying key...';
+        licenseMsg.className = 'vc-msg';
+      }
+
+      const res = await VeloxLicense.activateLicenseKey(emailElem ? emailElem.textContent : '', key);
+      if (licenseMsg) {
+        licenseMsg.textContent = res.message;
+        licenseMsg.className = res.success ? 'vc-msg success' : 'vc-msg error';
+      }
+      if (res.success) {
+        await updateLicenseUI();
+      }
+    });
+  }
+
+  // 4. Check Active Tab Status
+  try {
+    const tabs = await chrome.tabs.query({ active: true });
+    const tab = tabs[0];
     if (tab && tab.id) {
-      chrome.tabs.sendMessage(tab.id, { action: 'CYCLE_ASPECT' }).catch(() => {});
+      chrome.tabs.sendMessage(tab.id, { action: 'PING' }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+          if (statusDot) statusDot.classList.remove('active');
+          if (statusText) statusText.textContent = 'No streaming video in active tab';
+        } else {
+          if (statusDot) statusDot.classList.add('active');
+          const pName = res.platform ? res.platform.toUpperCase() : 'HTML5';
+          if (statusText) {
+            statusText.textContent = `Connected: ${pName} Player (${res.videoBound ? 'Video Active' : 'Waiting for video'})`;
+          }
+        }
+      });
     }
-  });
+  } catch (e) {
+    if (statusText) statusText.textContent = 'Ready for playback';
+  }
+
+  // 5. Quick Action Trigger Buttons
+  if (btnToggleDimmer) {
+    btnToggleDimmer.addEventListener('click', async () => {
+      const tabs = await chrome.tabs.query({ active: true });
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'TOGGLE_DIMMER' }).catch(() => {});
+      }
+    });
+  }
+
+  if (btnCycleAspect) {
+    btnCycleAspect.addEventListener('click', async () => {
+      const tabs = await chrome.tabs.query({ active: true });
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'CYCLE_ASPECT' }).catch(() => {});
+      }
+    });
+  }
 
   if (btnPlayground) {
     btnPlayground.addEventListener('click', () => {
-      const playgroundUrl = chrome.runtime.getURL('test-playground/index.html');
-      chrome.tabs.create({ url: playgroundUrl });
+      chrome.tabs.create({ url: chrome.runtime.getURL('test-playground/index.html') });
     });
   }
 
   if (btnUpgrade) {
     btnUpgrade.addEventListener('click', () => {
-      upgradeModal.style.display = 'flex';
+      if (upgradeModal) upgradeModal.style.display = 'flex';
     });
   }
 
   if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
-      upgradeModal.style.display = 'none';
+      if (upgradeModal) upgradeModal.style.display = 'none';
     });
   }
 
@@ -196,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       aspectEnabled: currentAspect !== 'original',
       defaultAspect: currentAspect,
       customAspect: currentAspect,
-      subEnabled: currentSubPos !== 'bottom-center',
+      subEnabled: true,
       subPosition: currentSubPos,
       adWarpEnabled: chkAdwarp ? chkAdwarp.checked : true,
       bingeEnabled: chkBinge ? chkBinge.checked : true,
@@ -213,8 +230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await chrome.storage.local.set({ veloxcine_settings: settings });
-
-    // Send immediate real-time update to the active video tab
     await notifyActiveTab(update);
   }
 
@@ -228,7 +243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Auto-detect current tab platform
   try {
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs = await chrome.tabs.query({ active: true });
+    const activeTab = tabs[0];
     if (activeTab && activeTab.url) {
       if (activeTab.url.includes('youtube.com')) currentPlatform = 'youtube';
       else if (activeTab.url.includes('netflix.com')) currentPlatform = 'netflix';
@@ -264,23 +280,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // 7. Dodo Checkout Trigger in Extension Popup
   if (btnCheckout) {
     btnCheckout.addEventListener('click', (e) => {
       e.preventDefault();
       const checkoutUrl = isIndian ? dodoInr : dodoUsd;
       chrome.tabs.create({ url: checkoutUrl });
-      upgradeModal.style.display = 'none';
+      if (upgradeModal) upgradeModal.style.display = 'none';
     });
   }
 
-  // 8. Reset All Settings Handler (Placed inside DOMContentLoaded)
-  const btnReset = document.getElementById('btn-reset-settings');
+  // 7. Reset All Settings Handler
   if (btnReset) {
     btnReset.addEventListener('click', async (e) => {
       e.preventDefault();
 
-      // 1. Reset all visual controls in popup UI
       if (selAspect) selAspect.value = 'original';
       if (selSubPos) selSubPos.value = 'bottom-center';
       if (selDimmer) selDimmer.value = '100';
@@ -293,7 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         aspectEnabled: false,
         defaultAspect: 'original',
         customAspect: 'original',
-        subEnabled: false,
+        subEnabled: true,
         subPosition: 'bottom-center',
         adWarpEnabled: true,
         bingeEnabled: true,
@@ -314,14 +327,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       await chrome.storage.local.set({ veloxcine_settings: defaultSettings });
 
-      // Notify active tab with RESET_SETTINGS action
+      // Notify active tabs
       try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab && tab.id) {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'RESET_SETTINGS',
-            settings: defaultState
-          }).catch(() => {});
+        const tabs = await chrome.tabs.query({ active: true });
+        for (const tab of tabs) {
+          if (tab && tab.id) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'RESET_SETTINGS',
+              settings: defaultState
+            }).catch(() => {});
+          }
         }
       } catch (err) {}
 
