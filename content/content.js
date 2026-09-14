@@ -76,6 +76,7 @@
   let audioCtx = null;
   let audioSourceNode = null;
   let audioGainNode = null;
+  let audioCompressorNode = null;
 
   /* ==========================================================================
      1. HIGH-PERFORMANCE VIDEO DETECTION & THROTTLED OBSERVER
@@ -120,7 +121,8 @@
 
     video.addEventListener('timeupdate', onVideoTimeUpdate, { passive: true });
     video.addEventListener('ratechange', () => {
-      if (state.adWarp.isAdActive && state.adWarp.enabled && video.playbackRate < 15) {
+      const isPrem = typeof VeloxLicense !== 'undefined' ? VeloxLicense.isPremium() : state.isPremium;
+      if (isPrem && state.adWarp.isAdActive && state.adWarp.enabled && video.playbackRate < 15) {
         video.playbackRate = 16.0;
       }
     });
@@ -177,6 +179,79 @@
   /* ==========================================================================
      2. 16x HYPER-WARP AD-SKIPPER & BINGE MODE OBSERVER
      ========================================================================== */
+
+  // Injects main-world bridge to call YouTube player.skipAd() directly
+  function injectYouTubeMainWorldBridge() {
+    if (document.getElementById('veloxcine-yt-bridge')) return;
+    const script = document.createElement('script');
+    script.id = 'veloxcine-yt-bridge';
+    script.textContent = `
+      (function() {
+        function triggerSkip() {
+          try {
+            const p = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+            if (p) {
+              if (typeof p.skipAd === 'function') {
+                p.skipAd();
+              }
+              if (typeof p.cancelPlayback === 'function' && (p.classList.contains('ad-showing') || p.classList.contains('ad-interrupting'))) {
+                p.cancelPlayback();
+              }
+            }
+          } catch(e) {}
+        }
+        window.addEventListener('veloxcine-skip-ad', triggerSkip);
+
+        // Active safety loop in page world to ensure instant skip when button renders
+        setInterval(() => {
+          const p = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+          if (p && (p.classList.contains('ad-showing') || p.classList.contains('ad-interrupting'))) {
+            const hasSkipBtn = document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button, button[id^="skip-button"]');
+            if (hasSkipBtn && typeof p.skipAd === 'function') {
+              p.skipAd();
+            }
+          }
+        }, 200);
+      })();
+    `;
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // Realistic pointer + mouse event sequence to satisfy YouTube Closure event listeners
+  function simulateFullClick(el) {
+    if (!el) return;
+    try {
+      const rect = el.getBoundingClientRect();
+      const clientX = rect.left + (rect.width ? rect.width / 2 : 0);
+      const clientY = rect.top + (rect.height ? rect.height / 2 : 0);
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        composed: true,
+        clientX: clientX || 10,
+        clientY: clientY || 10,
+        buttons: 1
+      };
+
+      el.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+      el.dispatchEvent(new MouseEvent('mousedown', eventInit));
+      el.dispatchEvent(new PointerEvent('pointerup', eventInit));
+      el.dispatchEvent(new MouseEvent('mouseup', eventInit));
+      el.dispatchEvent(new MouseEvent('click', eventInit));
+      if (typeof el.click === 'function') {
+        el.click();
+      }
+
+      // Also trigger on parent container in case listener is on wrapper
+      if (el.parentElement && el.parentElement !== document.body) {
+        el.parentElement.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+        el.parentElement.dispatchEvent(new MouseEvent('click', eventInit));
+        if (typeof el.parentElement.click === 'function') el.parentElement.click();
+      }
+    } catch (e) {}
+  }
+
   function detectAdAndBingeState() {
     const video = state.activeVideo || findPrimaryVideo();
     if (!video || document.hidden) return;
@@ -194,9 +269,9 @@
       ];
       for (let i = 0; i < introButtons.length; i++) {
         const btn = document.querySelector(introButtons[i]);
-        if (btn && btn.offsetParent !== null) {
+        if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0)) {
           try {
-            btn.click();
+            simulateFullClick(btn);
             showToast('⚡ Binge Mode: Intro/Recap Skipped');
           } catch (e) {}
           break;
@@ -207,9 +282,9 @@
     // B. Auto Next Episode
     if (state.binge.autoNextEpisode) {
       const nextBtn = document.querySelector('[data-uia="next-episode-seamless-button"], .atvwebplayersdk-next-episode-button');
-      if (nextBtn && nextBtn.offsetParent !== null) {
+      if (nextBtn && (nextBtn.offsetParent !== null || nextBtn.offsetWidth > 0)) {
         try {
-          nextBtn.click();
+          simulateFullClick(nextBtn);
           showToast('⚡ Binge Mode: Next Episode Started');
         } catch (e) {}
       }
@@ -223,7 +298,7 @@
       const moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
       isAd = Boolean(
         (moviePlayer && (moviePlayer.classList.contains('ad-showing') || moviePlayer.classList.contains('ad-interrupting'))) ||
-        document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, .ytp-ad-text')
+        document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, .ytp-ad-text, .ytp-ad-module')
       );
     } else if (state.detectedPlatform === 'netflix') {
       isAd = Boolean(document.querySelector('.ad-container, [data-uia="ad-breakpoint"]'));
@@ -235,44 +310,55 @@
       isAd = Boolean(document.querySelector('.ad-showing, .video-ads, [data-ad-active="true"]'));
     }
 
-    // Click ALL YouTube & Platform Skip Ad Buttons Instantly
+    // Click ALL YouTube & Platform Skip Ad Buttons Instantly (Active for both Free & Premium)
     const skipSelectors = [
       '.ytp-skip-ad-button',
-      '.ytp-ad-skip-button',
       '.ytp-ad-skip-button-modern',
+      '.ytp-ad-skip-button',
       '.ytp-ad-skip-button-container button',
       '.ytp-ad-skip-button-slot button',
+      '.ytp-ad-skip-button-container',
+      '.ytp-ad-skip-button-slot',
+      'button.ytp-ad-skip-button-modern',
       'button.ytp-ad-skip-button',
       'button.ytp-skip-ad-button',
+      'button[id^="skip-button"]',
       'button[class*="skip-ad"]',
       'button[class*="skip-button"]',
       'button.skip-ad',
       '.videoAdUiSkipButton',
       '.fuzzyCenter .skip-element'
     ];
+
+    let clickedSkip = false;
     for (let i = 0; i < skipSelectors.length; i++) {
       const btns = document.querySelectorAll(skipSelectors[i]);
       for (let j = 0; j < btns.length; j++) {
         const b = btns[j];
-        if (b && b.offsetParent !== null) {
+        if (b && (b.offsetParent !== null || b.offsetWidth > 0 || b.offsetHeight > 0)) {
           try {
-            b.click();
+            simulateFullClick(b);
+            window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+            clickedSkip = true;
             showToast('⚡ VeloxCine: Ad Skipped');
           } catch (e) {}
           break;
         }
       }
+      if (clickedSkip) break;
     }
 
     // Additional text search for modern YouTube pill buttons ("Skip >|")
-    if (isAd || state.detectedPlatform === 'youtube') {
-      const candidateButtons = document.querySelectorAll('.html5-video-player button, .ytp-ad-module button');
+    if (!clickedSkip && (isAd || state.detectedPlatform === 'youtube')) {
+      const candidateButtons = document.querySelectorAll('.html5-video-player button, .ytp-ad-module button, .ytp-ad-skip-button-slot *');
       for (let i = 0; i < candidateButtons.length; i++) {
         const b = candidateButtons[i];
         const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
-        if (txt.includes('skip') && b.offsetParent !== null) {
+        if (txt.includes('skip') && (b.offsetParent !== null || b.offsetWidth > 0)) {
           try {
-            b.click();
+            simulateFullClick(b);
+            window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+            clickedSkip = true;
             showToast('⚡ VeloxCine: Ad Skipped');
           } catch (e) {}
           break;
@@ -280,7 +366,7 @@
       }
     }
 
-    // 16x Fast Forward + Auto Mute + Instant Jump
+    // When ad is active
     if (isAd) {
       if (!state.adWarp.isAdActive) {
         state.adWarp.isAdActive = true;
@@ -293,16 +379,31 @@
         video.muted = true;
       }
 
-      // 16x Hyper-Warp
-      try {
-        video.playbackRate = 16.0;
-      } catch (e) {
-        video.playbackRate = 8.0;
+      const isPrem = typeof VeloxLicense !== 'undefined' ? VeloxLicense.isPremium() : state.isPremium;
+
+      // In Lifetime Premium: 16x Hyper-Warp + Fast Forward
+      if (isPrem) {
+        try {
+          video.playbackRate = 16.0;
+        } catch (e) {
+          video.playbackRate = 8.0;
+        }
+
+        // Instant Skip Jump: Fast-forward straight to near the end of the ad segment
+        if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) {
+          video.currentTime = video.duration - 0.1;
+        }
       }
 
-      // Instant Skip Jump: Fast-forward straight to the end of the ad segment
-      if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) {
-        video.currentTime = video.duration - 0.1;
+      // Dispatch skip signal to main-world player
+      window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+
+      // If ad has reached the end or is stuck on the post-ad screen, auto-advance
+      if (isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.25) {
+        window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+        if (video.paused) {
+          try { video.play(); } catch(e) {}
+        }
       }
 
     } else if (!isAd && state.adWarp.isAdActive) {
@@ -316,8 +417,8 @@
     }
   }
 
-  // High-performance ad scanner running every 250ms
-  setInterval(detectAdAndBingeState, 250);
+  // High-performance ad scanner running every 200ms
+  setInterval(detectAdAndBingeState, 200);
 
   /* ==========================================================================
      3. ASPECT RATIO & BLACK BAR ELIMINATOR
@@ -371,11 +472,30 @@
      ========================================================================== */
   let subtitleStyleTag = null;
 
+  function forceNativeCaptionPosition() {
+    const { posX, posY } = state.subtitles;
+    const containers = document.querySelectorAll(
+      '#ytp-caption-window-container, .ytp-caption-window-container, .caption-window, .player-timedtext, .atvwebplayersdk-subtitles-container'
+    );
+    containers.forEach(el => {
+      try {
+        el.style.setProperty('position', 'absolute', 'important');
+        el.style.setProperty('left', `${posX}%`, 'important');
+        el.style.setProperty('top', `${posY}%`, 'important');
+        el.style.setProperty('bottom', 'auto', 'important');
+        el.style.setProperty('right', 'auto', 'important');
+        el.style.setProperty('margin', '0', 'important');
+        el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+        el.style.setProperty('text-align', 'center', 'important');
+      } catch (e) {}
+    });
+  }
+
   function injectSubtitleStyles() {
     if (!subtitleStyleTag) {
       subtitleStyleTag = document.createElement('style');
       subtitleStyleTag.id = 'veloxcine-dynamic-subtitles';
-      document.head.appendChild(subtitleStyleTag);
+      (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
     const { fontSize, fontColor, brightness, bgOpacity, outline, fontFamily, posX, posY } = state.subtitles;
@@ -385,18 +505,33 @@
       : 'none';
     const filter = `brightness(${brightness}%)`;
 
-    const selectors = [
+    const textSelectors = [
       '.player-timedtext',
       '.player-timedtext-text-container',
+      '.player-timedtext-text-container span',
       '.atvwebplayersdk-subtitle-text',
       '.shaka-text-container span',
       '.subtitle-display span',
       '.ytp-caption-segment',
+      '.caption-visual-line',
       '.velox-custom-sub-text'
     ].join(', ');
 
+    const containerSelectors = [
+      '#ytp-caption-window-container',
+      '.ytp-caption-window-container',
+      '.caption-window',
+      '.ytp-caption-window-bottom',
+      '.ytp-caption-window-rollup',
+      '.player-timedtext',
+      '.player-timedtext-text-container',
+      '.atvwebplayersdk-subtitles-container',
+      '.atvwebplayersdk-captions-overlay',
+      '.shaka-text-container'
+    ].join(', ');
+
     subtitleStyleTag.textContent = `
-      ${selectors} {
+      ${textSelectors} {
         font-size: ${fontSize}px !important;
         color: ${fontColor} !important;
         background-color: ${bg} !important;
@@ -405,11 +540,23 @@
         font-family: ${fontFamily}, system-ui, sans-serif !important;
         transition: filter 0.15s ease, font-size 0.15s ease !important;
       }
-      .player-timedtext, .atvwebplayersdk-subtitles-container {
+      ${containerSelectors} {
         position: absolute !important;
         left: ${posX}% !important;
         top: ${posY}% !important;
+        bottom: auto !important;
+        right: auto !important;
+        margin: 0 !important;
         transform: translate(-50%, -50%) !important;
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        cursor: grab !important;
+      }
+      .caption-window:active,
+      .ytp-caption-window-container:active,
+      .player-timedtext:active {
+        cursor: grabbing !important;
       }
     `;
 
@@ -419,6 +566,8 @@
       anchor.style.top = `${posY}%`;
       anchor.style.transform = 'translate(-50%, -50%)';
     }
+
+    forceNativeCaptionPosition();
   }
 
   function toggleDimmer() {
@@ -575,19 +724,44 @@
       audioCtx = new AudioContext();
       audioSourceNode = audioCtx.createMediaElementSource(video);
       audioGainNode = audioCtx.createGain();
+
+      // Studio-grade dynamic range compressor & brickwall soft limiter
+      // Eliminates digital clipping, harsh distortion, and graininess at high gain levels
+      audioCompressorNode = audioCtx.createDynamicsCompressor();
+      audioCompressorNode.threshold.setValueAtTime(-14, audioCtx.currentTime); // dB
+      audioCompressorNode.knee.setValueAtTime(30, audioCtx.currentTime);      // soft knee for transparent compression
+      audioCompressorNode.ratio.setValueAtTime(12, audioCtx.currentTime);     // limiter ratio
+      audioCompressorNode.attack.setValueAtTime(0.003, audioCtx.currentTime); // 3ms fast attack catches transients
+      audioCompressorNode.release.setValueAtTime(0.25, audioCtx.currentTime); // 250ms smooth musical decay
+
+      // Signal Chain: Video Source -> Gain Booster -> Studio Limiter/Compressor -> Audio Destination
       audioSourceNode.connect(audioGainNode);
-      audioGainNode.connect(audioCtx.destination);
-    } catch (e) {}
+      audioGainNode.connect(audioCompressorNode);
+      audioCompressorNode.connect(audioCtx.destination);
+    } catch (e) {
+      console.warn('[VeloxCine] Web Audio setup:', e);
+    }
   }
 
   function setAudioGain(percent) {
-    if (percent > 100 && !audioCtx && state.activeVideo) setupAudioContext(state.activeVideo);
+    if (percent > 100 && !audioCtx && state.activeVideo) {
+      setupAudioContext(state.activeVideo);
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
     if (!audioGainNode) return;
-    if (percent > 100 && !VeloxLicense.isPremium()) {
+    const isPrem = typeof VeloxLicense !== 'undefined' ? VeloxLicense.isPremium() : state.isPremium;
+    if (percent > 100 && !isPrem) {
       showToast('🔒 600% Audio Booster requires Lifetime Premium');
       return;
     }
-    audioGainNode.gain.value = percent / 100;
+    const targetGain = percent / 100;
+    if (audioGainNode.gain.setValueAtTime && audioCtx) {
+      audioGainNode.gain.setValueAtTime(targetGain, audioCtx.currentTime);
+    } else {
+      audioGainNode.gain.value = targetGain;
+    }
   }
 
   /* ==========================================================================
@@ -1142,36 +1316,54 @@
   }
 
   function setupDraggableAnchor() {
-    const anchor = document.getElementById('veloxcine-subtitle-anchor');
-    if (!anchor) return;
-
     let isDragging = false;
-    anchor.addEventListener('mousedown', (e) => {
-      if (!VeloxLicense.isPremium()) {
-        showToast('🔒 Drag-to-Position Subtitles requires Lifetime Premium');
-        return;
-      }
-      isDragging = true;
-      anchor.classList.add('dragging');
-      e.preventDefault();
-    });
 
-    window.addEventListener('mousemove', (e) => {
+    function onDragStart(e) {
+      // Don't drag if interacting with HUD controls or buttons
+      if (e.target.closest('#velox-main-panel') || e.target.closest('.velox-nudge-widget') || e.target.closest('#velox-trigger-pill')) return;
+
+      const isSubTarget = e.target.closest('#veloxcine-subtitle-anchor') ||
+                          e.target.closest('.caption-window') ||
+                          e.target.closest('.ytp-caption-segment') ||
+                          e.target.closest('.ytp-caption-window-container') ||
+                          e.target.closest('.player-timedtext');
+
+      if (!isSubTarget) return;
+
+      isDragging = true;
+      const anchor = document.getElementById('veloxcine-subtitle-anchor');
+      if (anchor) anchor.classList.add('dragging');
+      e.preventDefault();
+    }
+
+    function onDragMove(e) {
       if (!isDragging) return;
-      const pctX = Math.max(5, Math.min(95, (e.clientX / window.innerWidth) * 100));
-      const pctY = Math.max(5, Math.min(98, (e.clientY / window.innerHeight) * 100));
+      const player = (state.activeVideo ? state.activeVideo.parentElement : null) ||
+                     document.getElementById('movie_player') ||
+                     document.querySelector('.html5-video-player') ||
+                     document.body;
+      const rect = player.getBoundingClientRect();
+      const width = rect.width > 0 ? rect.width : window.innerWidth;
+      const height = rect.height > 0 ? rect.height : window.innerHeight;
+      const pctX = Math.max(5, Math.min(95, ((e.clientX - rect.left) / width) * 100));
+      const pctY = Math.max(5, Math.min(98, ((e.clientY - rect.top) / height) * 100));
       state.subtitles.posX = Math.round(pctX);
       state.subtitles.posY = Math.round(pctY);
       injectSubtitleStyles();
-    });
+    }
 
-    window.addEventListener('mouseup', () => {
+    function onDragEnd() {
       if (isDragging) {
         isDragging = false;
-        anchor.classList.remove('dragging');
+        const anchor = document.getElementById('veloxcine-subtitle-anchor');
+        if (anchor) anchor.classList.remove('dragging');
         showToast(`Subtitle Position Saved (${state.subtitles.posX}%, ${state.subtitles.posY}%)`);
       }
-    });
+    }
+
+    document.addEventListener('mousedown', onDragStart);
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('mouseup', onDragEnd);
   }
 
   function updateHUDControls() {
@@ -1230,9 +1422,50 @@
     }, 2800);
   }
 
-  function init() {
+  // Persistent Settings Loader
+  async function loadPersistedSettings() {
+    try {
+      const data = await chrome.storage.local.get('veloxcine_settings');
+      const settings = data.veloxcine_settings || {};
+      const platform = state.detectedPlatform;
+      const prof = platform !== 'generic' && settings.profiles?.[platform] ? settings.profiles[platform] : (settings.global || {});
+
+      if (prof.adWarpEnabled !== undefined) state.adWarp.enabled = prof.adWarpEnabled;
+      if (prof.bingeEnabled !== undefined) {
+        state.binge.autoSkipIntro = prof.bingeEnabled;
+        state.binge.autoSkipRecap = prof.bingeEnabled;
+      }
+      if (prof.brightness !== undefined) {
+        state.subtitles.brightness = prof.brightness;
+        injectSubtitleStyles();
+      }
+      if (prof.defaultAspect) {
+        state.aspect.mode = prof.defaultAspect;
+        applyAspectTransform();
+      }
+    } catch (e) {}
+  }
+
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.veloxcine_settings) {
+        loadPersistedSettings();
+      }
+    });
+  } catch (e) {}
+
+  async function init() {
+    if (typeof VeloxLicense !== 'undefined' && VeloxLicense.init) {
+      try {
+        await VeloxLicense.init();
+        state.isPremium = VeloxLicense.isPremium();
+      } catch(e) {}
+    }
+    await loadPersistedSettings();
+    injectYouTubeMainWorldBridge();
     createHUD();
     injectSubtitleStyles();
+    setupDraggableAnchor();
     const v = findPrimaryVideo();
     if (v) bindVideo(v);
   }
