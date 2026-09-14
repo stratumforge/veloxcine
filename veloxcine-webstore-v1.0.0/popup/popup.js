@@ -160,25 +160,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settings = data.veloxcine_settings || {};
     const prof = platform === 'global' ? (settings.global || {}) : (settings.profiles?.[platform] || {});
 
-    const aspectEnabled = Boolean(prof.aspectEnabled);
-    if (chkAspect) {
-      chkAspect.checked = aspectEnabled;
-      if (rowAspectSelect) rowAspectSelect.style.display = aspectEnabled ? 'flex' : 'none';
-    }
-    if (prof.defaultAspect || prof.customAspect) selAspect.value = prof.defaultAspect || prof.customAspect;
+    if (selAspect) selAspect.value = prof.defaultAspect || prof.customAspect || 'original';
+    if (selSubPos) selSubPos.value = (prof.subPosition && !prof.subPosition.includes('%')) ? prof.subPosition : 'bottom-center';
+    if (prof.brightness !== undefined && selDimmer) selDimmer.value = String(prof.brightness);
 
-    const subEnabled = Boolean(prof.subEnabled);
-    if (chkSubModifier) {
-      chkSubModifier.checked = subEnabled;
-      if (rowSubSelect) rowSubSelect.style.display = subEnabled ? 'flex' : 'none';
-    }
-    if (prof.subPosition && selSubPos) selSubPos.value = prof.subPosition;
-
-    if (prof.adWarpEnabled !== undefined) chkAdwarp.checked = prof.adWarpEnabled;
-    if (prof.bingeEnabled !== undefined) chkBinge.checked = prof.bingeEnabled;
-    if (prof.ytTheater !== undefined) chkYtTheater.checked = prof.ytTheater;
-    if (prof.ytShorts !== undefined) chkYtShorts.checked = prof.ytShorts;
-    if (prof.brightness !== undefined) selDimmer.value = String(prof.brightness);
+    if (prof.adWarpEnabled !== undefined && chkAdwarp) chkAdwarp.checked = prof.adWarpEnabled;
+    if (prof.bingeEnabled !== undefined && chkBinge) chkBinge.checked = prof.bingeEnabled;
+    if (prof.ytTheater !== undefined && chkYtTheater) chkYtTheater.checked = prof.ytTheater;
+    if (prof.ytShorts !== undefined && chkYtShorts) chkYtShorts.checked = prof.ytShorts;
   }
 
   async function notifyActiveTab(update) {
@@ -199,17 +188,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const data = await chrome.storage.local.get('veloxcine_settings');
     const settings = data.veloxcine_settings || { global: {}, profiles: {} };
 
+    const currentAspect = selAspect ? selAspect.value : 'original';
+    const currentSubPos = selSubPos ? selSubPos.value : 'bottom-center';
+    const currentBrightness = selDimmer ? parseInt(selDimmer.value, 10) : 100;
+
     const update = {
-      aspectEnabled: chkAspect ? chkAspect.checked : false,
-      defaultAspect: selAspect.value,
-      customAspect: selAspect.value,
-      subEnabled: chkSubModifier ? chkSubModifier.checked : false,
-      subPosition: selSubPos ? selSubPos.value : 'bottom-center',
-      adWarpEnabled: chkAdwarp.checked,
-      bingeEnabled: chkBinge.checked,
-      ytTheater: chkYtTheater.checked,
-      ytShorts: chkYtShorts.checked,
-      brightness: parseInt(selDimmer.value, 10)
+      aspectEnabled: currentAspect !== 'original',
+      defaultAspect: currentAspect,
+      customAspect: currentAspect,
+      subEnabled: currentSubPos !== 'bottom-center',
+      subPosition: currentSubPos,
+      adWarpEnabled: chkAdwarp ? chkAdwarp.checked : true,
+      bingeEnabled: chkBinge ? chkBinge.checked : true,
+      ytTheater: chkYtTheater ? chkYtTheater.checked : false,
+      ytShorts: chkYtShorts ? chkYtShorts.checked : false,
+      brightness: currentBrightness
     };
 
     // Save to global AND active profile
@@ -225,42 +218,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await notifyActiveTab(update);
   }
 
-  if (chkAspect) {
-    chkAspect.addEventListener('change', () => {
-      if (rowAspectSelect) rowAspectSelect.style.display = chkAspect.checked ? 'flex' : 'none';
-      if (!chkAspect.checked) selAspect.value = 'original';
-      saveCurrentPlatformSettings();
-    });
-  }
-  if (selAspect) {
-    selAspect.addEventListener('change', () => {
-      if (selAspect.value !== 'original') {
-        if (chkAspect) chkAspect.checked = true;
-        if (rowAspectSelect) rowAspectSelect.style.display = 'flex';
-      }
-      saveCurrentPlatformSettings();
-    });
-  }
-
-  if (chkSubModifier) {
-    chkSubModifier.addEventListener('change', () => {
-      if (rowSubSelect) rowSubSelect.style.display = chkSubModifier.checked ? 'flex' : 'none';
-      saveCurrentPlatformSettings();
-    });
-  }
-  if (selSubPos) {
-    selSubPos.addEventListener('change', () => {
-      if (chkSubModifier) chkSubModifier.checked = true;
-      if (rowSubSelect) rowSubSelect.style.display = 'flex';
-      saveCurrentPlatformSettings();
-    });
-  }
-
+  if (selAspect) selAspect.addEventListener('change', saveCurrentPlatformSettings);
+  if (selSubPos) selSubPos.addEventListener('change', saveCurrentPlatformSettings);
+  if (selDimmer) selDimmer.addEventListener('change', saveCurrentPlatformSettings);
   if (chkAdwarp) chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
   if (chkBinge) chkBinge.addEventListener('change', saveCurrentPlatformSettings);
   if (chkYtTheater) chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
   if (chkYtShorts) chkYtShorts.addEventListener('change', saveCurrentPlatformSettings);
-  if (selDimmer) selDimmer.addEventListener('change', saveCurrentPlatformSettings);
 
   // Auto-detect current tab platform
   try {
@@ -317,19 +281,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
 
       // 1. Reset all visual controls in popup UI
-      if (chkAspect) chkAspect.checked = false;
-      if (rowAspectSelect) rowAspectSelect.style.display = 'none';
       if (selAspect) selAspect.value = 'original';
-
-      if (chkSubModifier) chkSubModifier.checked = false;
-      if (rowSubSelect) rowSubSelect.style.display = 'none';
       if (selSubPos) selSubPos.value = 'bottom-center';
-
+      if (selDimmer) selDimmer.value = '100';
       if (chkAdwarp) chkAdwarp.checked = true;
       if (chkBinge) chkBinge.checked = true;
       if (chkYtTheater) chkYtTheater.checked = false;
       if (chkYtShorts) chkYtShorts.checked = false;
-      if (selDimmer) selDimmer.value = '100';
 
       const defaultState = {
         aspectEnabled: false,
