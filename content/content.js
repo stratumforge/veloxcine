@@ -178,10 +178,10 @@
      2. 16x HYPER-WARP AD-SKIPPER & BINGE MODE OBSERVER
      ========================================================================== */
   function detectAdAndBingeState() {
-    const video = state.activeVideo;
-    if (!video || video.paused || document.hidden) return;
+    const video = state.activeVideo || findPrimaryVideo();
+    if (!video || document.hidden) return;
 
-    // A. Binge Mode: Skip Intro & Skip Recap (Check only if enabled)
+    // A. Binge Mode: Skip Intro & Skip Recap
     if (state.binge.autoSkipIntro || state.binge.autoSkipRecap) {
       const introButtons = [
         '[data-uia="player-skip-intro"]',
@@ -215,12 +215,16 @@
       }
     }
 
-    // C. Ad Detection (Fast platform-specific check)
+    // C. Bulletproof Ad Detection Across Platforms
     if (!state.adWarp.enabled) return;
 
     let isAd = false;
     if (state.detectedPlatform === 'youtube') {
-      isAd = Boolean(document.querySelector('.ad-showing, .ytp-ad-player-overlay, .ytp-ad-text'));
+      const moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+      isAd = Boolean(
+        (moviePlayer && (moviePlayer.classList.contains('ad-showing') || moviePlayer.classList.contains('ad-interrupting'))) ||
+        document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, .ytp-ad-text')
+      );
     } else if (state.detectedPlatform === 'netflix') {
       isAd = Boolean(document.querySelector('.ad-container, [data-uia="ad-breakpoint"]'));
     } else if (state.detectedPlatform === 'prime') {
@@ -231,40 +235,76 @@
       isAd = Boolean(document.querySelector('.ad-showing, .video-ads, [data-ad-active="true"]'));
     }
 
-    // Auto-click Skip Ad buttons
-    if (isAd || state.detectedPlatform === 'youtube') {
-      const skipAdButtons = [
-        '.ytp-ad-skip-button',
-        '.ytp-ad-skip-button-modern',
-        'button.skip-ad',
-        '.videoAdUiSkipButton',
-        '.fuzzyCenter .skip-element'
-      ];
-      for (let i = 0; i < skipAdButtons.length; i++) {
-        const btn = document.querySelector(skipAdButtons[i]);
-        if (btn && btn.offsetParent !== null) {
+    // Click ALL YouTube & Platform Skip Ad Buttons Instantly
+    const skipSelectors = [
+      '.ytp-skip-ad-button',
+      '.ytp-ad-skip-button',
+      '.ytp-ad-skip-button-modern',
+      '.ytp-ad-skip-button-container button',
+      '.ytp-ad-skip-button-slot button',
+      'button.ytp-ad-skip-button',
+      'button.ytp-skip-ad-button',
+      'button[class*="skip-ad"]',
+      'button[class*="skip-button"]',
+      'button.skip-ad',
+      '.videoAdUiSkipButton',
+      '.fuzzyCenter .skip-element'
+    ];
+    for (let i = 0; i < skipSelectors.length; i++) {
+      const btns = document.querySelectorAll(skipSelectors[i]);
+      for (let j = 0; j < btns.length; j++) {
+        const b = btns[j];
+        if (b && b.offsetParent !== null) {
           try {
-            btn.click();
-            showToast('⚡ VeloxCine: Skip Clicked');
+            b.click();
+            showToast('⚡ VeloxCine: Ad Skipped');
           } catch (e) {}
           break;
         }
       }
     }
 
-    // 16x Fast Forward + Auto Mute
-    if (isAd && !state.adWarp.isAdActive) {
-      if (!VeloxLicense.isPremium()) return;
-      state.adWarp.isAdActive = true;
-      state.adWarp.savedSpeed = video.playbackRate || 1;
-      state.adWarp.savedVolume = video.volume;
-      if (state.adWarp.autoMute) video.muted = true;
+    // Additional text search for modern YouTube pill buttons ("Skip >|")
+    if (isAd || state.detectedPlatform === 'youtube') {
+      const candidateButtons = document.querySelectorAll('.html5-video-player button, .ytp-ad-module button');
+      for (let i = 0; i < candidateButtons.length; i++) {
+        const b = candidateButtons[i];
+        const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
+        if (txt.includes('skip') && b.offsetParent !== null) {
+          try {
+            b.click();
+            showToast('⚡ VeloxCine: Ad Skipped');
+          } catch (e) {}
+          break;
+        }
+      }
+    }
+
+    // 16x Fast Forward + Auto Mute + Instant Jump
+    if (isAd) {
+      if (!state.adWarp.isAdActive) {
+        state.adWarp.isAdActive = true;
+        state.adWarp.savedSpeed = video.playbackRate || 1;
+        state.adWarp.savedVolume = video.volume;
+      }
+
+      // Auto-Mute during ad
+      if (state.adWarp.autoMute && !video.muted) {
+        video.muted = true;
+      }
+
+      // 16x Hyper-Warp
       try {
         video.playbackRate = 16.0;
       } catch (e) {
         video.playbackRate = 8.0;
       }
-      showToast('⚡ VeloxCine: 16x Ad-Warp & Auto-Mute Active');
+
+      // Instant Skip Jump: Fast-forward straight to the end of the ad segment
+      if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) {
+        video.currentTime = video.duration - 0.1;
+      }
+
     } else if (!isAd && state.adWarp.isAdActive) {
       state.adWarp.isAdActive = false;
       video.playbackRate = state.adWarp.savedSpeed || 1;
@@ -276,8 +316,8 @@
     }
   }
 
-  // Periodic Ad & Binge Scanner (Calm 850ms interval - takes 0% CPU)
-  setInterval(detectAdAndBingeState, 850);
+  // High-performance ad scanner running every 250ms
+  setInterval(detectAdAndBingeState, 250);
 
   /* ==========================================================================
      3. ASPECT RATIO & BLACK BAR ELIMINATOR

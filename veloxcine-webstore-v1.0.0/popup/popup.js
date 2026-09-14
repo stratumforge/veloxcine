@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1. Sync License State
   async function updateLicenseUI() {
     const licState = await VeloxLicense.getState();
-    emailElem.textContent = licState.userEmail || 'forgestratum@gmail.com';
+    if (emailElem) emailElem.textContent = licState.userEmail || 'free_viewer@veloxcine.app';
 
     if (licState.isPremium) {
       tierBadge.textContent = 'LIFETIME PRO';
@@ -44,14 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       devToggle.checked = true;
       devState.textContent = 'Premium';
       devState.style.color = '#fbbf24';
-      btnUpgrade.style.display = 'none';
+      if (btnUpgrade) btnUpgrade.style.display = 'none';
     } else {
       tierBadge.textContent = 'FREE TIER';
       tierBadge.classList.remove('premium');
       devToggle.checked = false;
       devState.textContent = 'Free';
       devState.style.color = '#94a3b8';
-      btnUpgrade.style.display = 'block';
+      if (btnUpgrade) btnUpgrade.style.display = 'inline-block';
     }
   }
 
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     licenseMsg.textContent = 'Verifying key...';
     licenseMsg.className = 'vc-msg';
 
-    const res = await VeloxLicense.activateLicenseKey(emailElem.textContent, key);
+    const res = await VeloxLicense.activateLicenseKey(emailElem ? emailElem.textContent : '', key);
     if (res.success) {
       licenseMsg.textContent = res.message;
       licenseMsg.className = 'vc-msg success';
@@ -119,18 +119,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  btnPlayground.addEventListener('click', () => {
-    const playgroundUrl = chrome.runtime.getURL('test-playground/index.html');
-    chrome.tabs.create({ url: playgroundUrl });
-  });
+  if (btnPlayground) {
+    btnPlayground.addEventListener('click', () => {
+      const playgroundUrl = chrome.runtime.getURL('test-playground/index.html');
+      chrome.tabs.create({ url: playgroundUrl });
+    });
+  }
 
-  btnUpgrade.addEventListener('click', () => upgradeModal.style.display = 'flex');
-  btnCloseModal.addEventListener('click', () => upgradeModal.style.display = 'none');
-  btnCheckout.addEventListener('click', async () => {
-    await VeloxLicense.setDevTier(true);
-    await updateLicenseUI();
-    upgradeModal.style.display = 'none';
-  });
+  if (btnUpgrade) {
+    btnUpgrade.addEventListener('click', () => {
+      upgradeModal.style.display = 'flex';
+    });
+  }
+
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', () => {
+      upgradeModal.style.display = 'none';
+    });
+  }
 
   // Platform Profile Switching
   ptabs.forEach(tab => {
@@ -188,34 +194,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadPlatformSettings('global');
 
-  // Regional Pricing for Popup Modal
-  (function initPopupPricing() {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    const isIndian = tz.includes('Kolkata') || tz.includes('Calcutta') || tz.includes('India');
-    const priceAmount = document.getElementById('popup-price-amount');
-    const pricePeriod = document.getElementById('popup-price-period');
-    const btnCheckout = document.getElementById('btn-checkout');
+  // 6. Regional Pricing for Popup Modal
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const isIndian = tz.includes('Kolkata') || tz.includes('Calcutta') || tz.includes('India');
+  const priceAmount = document.getElementById('popup-price-amount');
+  const pricePeriod = document.getElementById('popup-price-period');
 
-    if (priceAmount && pricePeriod) {
-      if (isIndian) {
-        priceAmount.textContent = '₹399';
-        pricePeriod.textContent = 'One-Time Lifetime (UPI & RuPay)';
-        if (btnCheckout) btnCheckout.textContent = '⚡ Unlock with UPI (₹399)';
-      } else {
-        priceAmount.textContent = '$12.99';
-        pricePeriod.textContent = 'One-Time Lifetime (Apple Pay & Cards)';
-        if (btnCheckout) btnCheckout.textContent = 'Unlock Lifetime ($12.99)';
+  const dodoInr = "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1";
+  const dodoUsd = "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
 
-    if (btnCheckout) {
-      btnCheckout.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetUrl = isIndian ? "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1" : "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
-        chrome.tabs.create({ url: targetUrl });
-      });
+  if (priceAmount && pricePeriod) {
+    if (isIndian) {
+      priceAmount.textContent = '₹399';
+      pricePeriod.textContent = 'One-Time Lifetime (UPI & RuPay)';
+      if (btnCheckout) btnCheckout.textContent = '⚡ Unlock with UPI (₹399)';
+    } else {
+      priceAmount.textContent = '$12.99';
+      pricePeriod.textContent = 'One-Time Lifetime (Apple Pay & Cards)';
+      if (btnCheckout) btnCheckout.textContent = 'Unlock Lifetime ($12.99)';
     }
+  }
 
-      }
-    }
-  })();
-
+  // 7. Dodo Checkout Trigger in Extension Popup
+  if (btnCheckout) {
+    btnCheckout.addEventListener('click', (e) => {
+      e.preventDefault();
+      const checkoutUrl = isIndian ? dodoInr : dodoUsd;
+      chrome.tabs.create({ url: checkoutUrl });
+      upgradeModal.style.display = 'none';
+    });
+  }
 });
