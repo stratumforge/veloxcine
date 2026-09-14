@@ -181,6 +181,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (prof.brightness !== undefined) selDimmer.value = String(prof.brightness);
   }
 
+  async function notifyActiveTab(update) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'APPLY_SETTINGS_NOW',
+          settings: update
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
   async function saveCurrentPlatformSettings() {
     const data = await chrome.storage.local.get('veloxcine_settings');
     const settings = data.veloxcine_settings || { global: {}, profiles: {} };
@@ -198,14 +210,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       brightness: parseInt(selDimmer.value, 10)
     };
 
-    if (currentPlatform === 'global') {
-      settings.global = { ...settings.global, ...update };
-    } else {
+    // Save to global AND active profile
+    settings.global = { ...settings.global, ...update };
+    if (currentPlatform !== 'global') {
       settings.profiles = settings.profiles || {};
       settings.profiles[currentPlatform] = { ...settings.profiles[currentPlatform], ...update };
     }
 
     await chrome.storage.local.set({ veloxcine_settings: settings });
+
+    // Send immediate real-time update to the active video tab
+    await notifyActiveTab(update);
   }
 
   if (chkAspect) {
@@ -230,7 +245,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   chkYtShorts.addEventListener('change', saveCurrentPlatformSettings);
   selDimmer.addEventListener('change', saveCurrentPlatformSettings);
 
-  await loadPlatformSettings('global');
+  // Auto-detect current tab platform
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab && activeTab.url) {
+      if (activeTab.url.includes('youtube.com')) currentPlatform = 'youtube';
+      else if (activeTab.url.includes('netflix.com')) currentPlatform = 'netflix';
+      else if (activeTab.url.includes('primevideo.com') || activeTab.url.includes('amazon.')) currentPlatform = 'prime';
+      else if (activeTab.url.includes('hotstar.com')) currentPlatform = 'hotstar';
+
+      ptabs.forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-platform') === currentPlatform);
+      });
+    }
+  } catch (e) {}
+
+  await loadPlatformSettings(currentPlatform);
 
   // 6. Regional Pricing for Popup Modal
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';

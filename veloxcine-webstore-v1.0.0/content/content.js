@@ -486,45 +486,47 @@
       (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
-    // IF SUBTITLE MODIFIER IS DISABLED: Leave native captions 100% untouched!
-    if (!state.subtitles.enabled) {
-      if (state.subtitles.brightness < 100) {
-        subtitleStyleTag.textContent = `
-          .ytp-caption-segment, .player-timedtext, .atvwebplayersdk-subtitle-text {
-            filter: brightness(${state.subtitles.brightness}%) !important;
-          }
-        `;
-      } else {
-        subtitleStyleTag.textContent = '';
-      }
-      return;
-    }
+    const { brightness, posX, posY, enabled } = state.subtitles;
+    const opacityVal = (brightness / 100).toFixed(2);
+    const filterVal = `brightness(${brightness}%)`;
 
-    // When Subtitle Modifier IS enabled: position ONLY the cue box (.caption-window)
-    const { brightness, posX, posY } = state.subtitles;
-    const filter = `brightness(${brightness}%)`;
-
-    subtitleStyleTag.textContent = `
+    // Universal Subtitle Dimmer (works whether position modifier is on or off)
+    let css = `
       .caption-window,
-      .caption-window.ytp-caption-window-bottom,
-      .caption-window.ytp-caption-window-rollup,
-      .player-timedtext-text-container {
-        position: absolute !important;
-        left: ${posX}% !important;
-        top: ${posY}% !important;
-        bottom: auto !important;
-        right: auto !important;
-        margin: 0 !important;
-        transform: translate(-50%, -50%) !important;
-        width: auto !important;
-        max-width: 90% !important;
-        text-align: center !important;
-        cursor: grab !important;
-      }
-      .ytp-caption-segment, .player-timedtext, .atvwebplayersdk-subtitle-text {
-        filter: ${filter} !important;
+      .ytp-caption-segment,
+      .player-timedtext,
+      .player-timedtext-text-container,
+      .atvwebplayersdk-subtitle-text,
+      .shaka-text-container span {
+        opacity: ${opacityVal} !important;
+        filter: ${filterVal} !important;
+        transition: opacity 0.2s ease, filter 0.2s ease !important;
       }
     `;
+
+    // Subtitle Position Modifier: Only override position coordinates if enabled
+    if (enabled) {
+      css += `
+        .caption-window,
+        .caption-window.ytp-caption-window-bottom,
+        .caption-window.ytp-caption-window-rollup,
+        .player-timedtext-text-container {
+          position: absolute !important;
+          left: ${posX}% !important;
+          top: ${posY}% !important;
+          bottom: auto !important;
+          right: auto !important;
+          margin: 0 !important;
+          transform: translate(-50%, -50%) !important;
+          width: auto !important;
+          max-width: 90% !important;
+          text-align: center !important;
+          cursor: grab !important;
+        }
+      `;
+    }
+
+    subtitleStyleTag.textContent = css;
   }
 
   function toggleDimmer() {
@@ -764,6 +766,7 @@
 
       if (!isSubTarget) return;
 
+      state.subtitles.enabled = true;
       isDragging = true;
       e.preventDefault();
     }
@@ -813,8 +816,40 @@
     }
   });
 
+  function applySettingsObject(prof) {
+    if (!prof) return;
+
+    // Aspect Override
+    if (prof.aspectEnabled !== undefined) state.aspect.enabled = Boolean(prof.aspectEnabled);
+    if (prof.defaultAspect) state.aspect.mode = prof.defaultAspect;
+    applyAspectTransform();
+
+    // Subtitle Position & Modifier
+    if (prof.subEnabled !== undefined) state.subtitles.enabled = Boolean(prof.subEnabled);
+    if (prof.subPosition) {
+      state.subtitles.preset = prof.subPosition;
+      if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 12; }
+      else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
+      else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 96; }
+      else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 4; }
+    }
+    if (prof.brightness !== undefined) {
+      state.subtitles.brightness = parseInt(prof.brightness, 10);
+    }
+    injectSubtitleStyles();
+
+    if (prof.adWarpEnabled !== undefined) state.adWarp.enabled = prof.adWarpEnabled;
+    if (prof.bingeEnabled !== undefined) {
+      state.binge.autoSkipIntro = prof.bingeEnabled;
+      state.binge.autoSkipRecap = prof.bingeEnabled;
+    }
+  }
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'PING') {
+    if (msg.action === 'APPLY_SETTINGS_NOW') {
+      applySettingsObject(msg.settings);
+      sendResponse({ status: 'OK' });
+    } else if (msg.action === 'PING') {
       sendResponse({ status: 'OK', platform: state.detectedPlatform, videoBound: Boolean(state.activeVideo) });
     } else if (msg.action === 'CYCLE_ASPECT') {
       cycleAspectRatio();
@@ -847,32 +882,9 @@
       const data = await chrome.storage.local.get('veloxcine_settings');
       const settings = data.veloxcine_settings || {};
       const platform = state.detectedPlatform;
-      const prof = platform !== 'generic' && settings.profiles?.[platform] ? settings.profiles[platform] : (settings.global || {});
-
-      // Aspect Override Setting
-      if (prof.aspectEnabled !== undefined) state.aspect.enabled = Boolean(prof.aspectEnabled);
-      if (prof.defaultAspect) state.aspect.mode = prof.defaultAspect;
-      applyAspectTransform();
-
-      // Subtitle Modifier Setting
-      if (prof.subEnabled !== undefined) state.subtitles.enabled = Boolean(prof.subEnabled);
-      if (prof.subPosition) {
-        state.subtitles.preset = prof.subPosition;
-        if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 12; }
-        else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
-        else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 96; }
-        else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 4; }
-      }
-      if (prof.brightness !== undefined) {
-        state.subtitles.brightness = prof.brightness;
-      }
-      injectSubtitleStyles();
-
-      if (prof.adWarpEnabled !== undefined) state.adWarp.enabled = prof.adWarpEnabled;
-      if (prof.bingeEnabled !== undefined) {
-        state.binge.autoSkipIntro = prof.bingeEnabled;
-        state.binge.autoSkipRecap = prof.bingeEnabled;
-      }
+      // Merge global settings with platform-specific profile
+      const prof = { ...(settings.global || {}), ...(platform !== 'generic' && settings.profiles?.[platform] ? settings.profiles[platform] : {}) };
+      applySettingsObject(prof);
     } catch (e) {}
   }
 
