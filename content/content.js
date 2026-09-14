@@ -657,7 +657,7 @@
       (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
-    const { brightness, posX, posY, enabled, preset, isCustomDrag } = state.subtitles;
+    const { brightness, posX, posY, enabled, preset, isCustomDrag, fontColor } = state.subtitles;
     const b = (typeof brightness === 'number' && !isNaN(brightness)) ? brightness : 100;
 
     let css = '';
@@ -679,91 +679,161 @@
       `;
     }
 
-    // 2. Subtitle Font Color
-    if (state.subtitles.fontColor) {
+    // 2. Subtitle Font Color Override
+    if (fontColor) {
       css += `
         .ytp-caption-segment,
         .atvwebplayersdk-captions-text,
         span.atvwebplayersdk-captions-text,
         .atvwebplayersdk-subtitle-text,
         .shaka-text-container span {
-          color: ${state.subtitles.fontColor} !important;
+          color: ${fontColor} !important;
         }
       `;
     }
 
-    // 3. Position Rules: Always accurate on both X and Y axis across YouTube, Prime Video & generic players
-    if (enabled) {
-      let posRules = '';
+    // 3. Prime Video Overlay Pointer-Events (CRITICAL: prevents blocking play/pause clicks across video frame)
+    css += `
+      .atvwebplayersdk-captions-overlay,
+      .atvwebplayersdk-captions-overlay *,
+      div[class*="captions-overlay"],
+      div[class*="captions-overlay"] * {
+        pointer-events: none !important;
+      }
+      .atvwebplayersdk-captions-text,
+      span.atvwebplayersdk-captions-text,
+      .ytp-caption-segment {
+        pointer-events: auto !important;
+        cursor: grab !important;
+        user-select: none !important;
+      }
+      .atvwebplayersdk-captions-text:active,
+      span.atvwebplayersdk-captions-text:active,
+      .ytp-caption-segment:active {
+        cursor: grabbing !important;
+      }
+    `;
 
+    // 4. Subtitle Position & Natural Dimensions (Prevents squishing into 1-word column)
+    if (enabled) {
       if (isCustomDrag && typeof posX === 'number' && typeof posY === 'number') {
-        // User dragged with cursor: exact top-left positioning without jump
-        posRules = `
-          left: ${posX}% !important;
-          top: ${posY}% !important;
-          bottom: auto !important;
-          transform: none !important;
-        `;
-      } else if (preset === 'top-center') {
-        posRules = `
-          left: 50% !important;
-          top: 8% !important;
-          bottom: auto !important;
-          transform: translateX(-50%) !important;
-        `;
-      } else if (preset === 'top-black-bar') {
-        posRules = `
-          left: 50% !important;
-          top: 2% !important;
-          bottom: auto !important;
-          transform: translateX(-50%) !important;
-        `;
-      } else if (preset === 'bottom-black-bar') {
-        posRules = `
-          left: 50% !important;
-          bottom: 2% !important;
-          top: auto !important;
-          transform: translateX(-50%) !important;
+        // Dragged manually with cursor: exact percentage coordinates without jump
+        css += `
+          /* YouTube Dragged */
+          .caption-window,
+          .caption-window.ytp-caption-window-bottom,
+          .caption-window.ytp-caption-window-rollup {
+            position: absolute !important;
+            left: ${posX}% !important;
+            top: ${posY}% !important;
+            bottom: auto !important;
+            right: auto !important;
+            transform: none !important;
+            margin: 0 !important;
+            width: auto !important;
+            max-width: 90% !important;
+            text-align: center !important;
+            z-index: 9999 !important;
+            cursor: grab !important;
+            pointer-events: auto !important;
+          }
+          /* Prime Video Dragged: Natural max-content width prevents column squishing */
+          .atvwebplayersdk-captions-overlay > div,
+          div[class*="captions-overlay"] > div {
+            position: absolute !important;
+            left: ${posX}% !important;
+            top: ${posY}% !important;
+            bottom: auto !important;
+            right: auto !important;
+            transform: none !important;
+            margin: 0 !important;
+            width: max-content !important;
+            max-width: 85% !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .atvwebplayersdk-captions-text,
+          span.atvwebplayersdk-captions-text {
+            display: inline-block !important;
+            width: auto !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            line-height: 1.35 !important;
+            text-align: center !important;
+          }
         `;
       } else {
-        // 'bottom-center' (Default Position): Centered horizontally, anchored at bottom above controls
-        posRules = `
-          left: 50% !important;
-          bottom: 8% !important;
-          top: auto !important;
-          transform: translateX(-50%) !important;
+        // Presets: Bottom Center, Top Center, Bottom Black Bar, Top Black Bar
+        let ytPos = '';
+        let primeVertical = '';
+
+        if (preset === 'top-center') {
+          ytPos = `left: 50% !important; top: 8% !important; bottom: auto !important; transform: translateX(-50%) !important;`;
+          primeVertical = `top: 8% !important; bottom: auto !important; justify-content: flex-start !important;`;
+        } else if (preset === 'top-black-bar') {
+          ytPos = `left: 50% !important; top: 2% !important; bottom: auto !important; transform: translateX(-50%) !important;`;
+          primeVertical = `top: 2% !important; bottom: auto !important; justify-content: flex-start !important;`;
+        } else if (preset === 'bottom-black-bar') {
+          ytPos = `left: 50% !important; bottom: 2% !important; top: auto !important; transform: translateX(-50%) !important;`;
+          primeVertical = `bottom: 2% !important; top: auto !important; justify-content: flex-end !important;`;
+        } else {
+          // 'bottom-center' (Default Position): Centered horizontally, anchored at bottom above controls
+          ytPos = `left: 50% !important; bottom: 8% !important; top: auto !important; transform: translateX(-50%) !important;`;
+          primeVertical = `bottom: 8% !important; top: auto !important; justify-content: flex-end !important;`;
+        }
+
+        css += `
+          /* YouTube Preset */
+          .caption-window,
+          .caption-window.ytp-caption-window-bottom,
+          .caption-window.ytp-caption-window-rollup {
+            position: absolute !important;
+            ${ytPos}
+            right: auto !important;
+            margin: 0 !important;
+            width: auto !important;
+            max-width: 90% !important;
+            text-align: center !important;
+            z-index: 9999 !important;
+            cursor: grab !important;
+            pointer-events: auto !important;
+          }
+          /* Prime Video Preset: Full width container centered horizontally with correct vertical positioning */
+          .atvwebplayersdk-captions-overlay > div,
+          div[class*="captions-overlay"] > div {
+            position: absolute !important;
+            width: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            ${primeVertical}
+            margin: 0 !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            transform: none !important;
+          }
+          .atvwebplayersdk-captions-overlay p,
+          div[class*="captions-overlay"] p {
+            width: 100% !important;
+            text-align: center !important;
+            margin: 0 !important;
+            padding: 0 5% !important;
+            box-sizing: border-box !important;
+          }
+          .atvwebplayersdk-captions-text,
+          span.atvwebplayersdk-captions-text {
+            display: inline-block !important;
+            width: auto !important;
+            max-width: 90% !important;
+            white-space: normal !important;
+            line-height: 1.35 !important;
+            text-align: center !important;
+          }
         `;
       }
-
-      css += `
-        .caption-window,
-        .caption-window.ytp-caption-window-bottom,
-        .caption-window.ytp-caption-window-rollup,
-        .atvwebplayersdk-captions-overlay > div,
-        div[class*="captions-overlay"] > div {
-          position: absolute !important;
-          ${posRules}
-          right: auto !important;
-          margin: 0 !important;
-          width: auto !important;
-          max-width: 90% !important;
-          text-align: center !important;
-          z-index: 9999 !important;
-          cursor: grab !important;
-          pointer-events: auto !important;
-        }
-        .caption-window:active,
-        .atvwebplayersdk-captions-overlay > div:active,
-        div[class*="captions-overlay"] > div:active,
-        .atvwebplayersdk-captions-text:active {
-          cursor: grabbing !important;
-        }
-        .atvwebplayersdk-captions-overlay,
-        .atvwebplayersdk-captions-text {
-          cursor: grab !important;
-          pointer-events: auto !important;
-        }
-      `;
     }
 
     subtitleStyleTag.textContent = css;
@@ -1001,28 +1071,18 @@
     let grabOffsetY = 0;
 
     function onDragStart(e) {
-      const captionTarget = e.target.closest(`
+      // ONLY trigger dragging if clicking the actual subtitle text itself
+      const textTarget = e.target.closest(`
         .caption-window,
-        .player-timedtext,
-        #caption-window-1,
-        .atvwebplayersdk-captions-overlay > div,
-        div[class*="captions-overlay"] > div,
-        .atvwebplayersdk-captions-overlay,
-        div[class*="captions-overlay"],
+        .ytp-caption-segment,
         .atvwebplayersdk-captions-text,
-        .shaka-text-container
+        span.atvwebplayersdk-captions-text,
+        .atvwebplayersdk-subtitle-text,
+        .shaka-text-container span
       `);
-      if (!captionTarget) return;
+      if (!textTarget) return;
 
-      const captionWindow = captionTarget.closest(`
-        .caption-window,
-        .atvwebplayersdk-captions-overlay > div,
-        div[class*="captions-overlay"] > div,
-        .atvwebplayersdk-captions-overlay,
-        div[class*="captions-overlay"]
-      `) || captionTarget;
-
-      const boxRect = captionWindow.getBoundingClientRect();
+      const boxRect = textTarget.getBoundingClientRect();
       grabOffsetX = e.clientX - boxRect.left;
       grabOffsetY = e.clientY - boxRect.top;
 
