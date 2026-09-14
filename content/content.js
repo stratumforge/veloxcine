@@ -19,11 +19,13 @@
     theme: 'cyan',
 
     aspect: {
+      enabled: false,
       mode: 'original',
       customZoom: 100,
       panY: 0
     },
     subtitles: {
+      enabled: false,
       fontSize: 24,
       fontColor: '#ffffff',
       brightness: 100,
@@ -387,17 +389,17 @@
           video.playbackRate = 8.0;
         }
 
-        // Instant Skip Jump: Fast-forward straight to near the end of the ad segment
-        if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) {
-          video.currentTime = video.duration - 0.1;
+        // Instant Skip Jump: Fast-forward straight to the end of the ad segment
+        if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration) {
+          video.currentTime = video.duration;
         }
       }
 
-      // Dispatch skip signal to main-world player
+      // Dispatch skip signal to MAIN-world YouTube player bridge (calls player.skipAd())
       window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
 
-      // If ad has reached the end or is stuck on the post-ad screen, auto-advance
-      if (isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.25) {
+      // If video reached end or is paused at end screen, push play to trigger transition
+      if (isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.2) {
         window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
         if (video.paused) {
           try { video.play(); } catch(e) {}
@@ -428,13 +430,17 @@
     const video = state.activeVideo;
     if (!video) return;
 
+    // If Aspect Ratio Override is NOT enabled, reset to natural original
+    if (!state.aspect.enabled || state.aspect.mode === 'original') {
+      video.style.transform = 'none';
+      video.style.objectFit = 'contain';
+      return;
+    }
+
     video.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), object-fit 0.25s ease';
 
     const mode = state.aspect.mode;
-    if (mode === 'original') {
-      video.style.transform = 'none';
-      video.style.objectFit = 'contain';
-    } else if (mode === 'ultrawide') {
+    if (mode === 'ultrawide') {
       video.style.objectFit = 'cover';
       video.style.transform = 'scale(1.334)';
     } else if (mode === 'crop169') {
@@ -469,28 +475,9 @@
   }
 
   /* ==========================================================================
-     4. SUBTITLE ENGINE & DRAG-AND-DROP ANCHOR
+     4. SUBTITLE ENGINE (CONDITIONAL MODIFIER & OLED DIMMER)
      ========================================================================== */
   let subtitleStyleTag = null;
-
-  function forceNativeCaptionPosition() {
-    const { posX, posY } = state.subtitles;
-    const containers = document.querySelectorAll(
-      '#ytp-caption-window-container, .ytp-caption-window-container, .caption-window, .player-timedtext, .atvwebplayersdk-subtitles-container'
-    );
-    containers.forEach(el => {
-      try {
-        el.style.setProperty('position', 'absolute', 'important');
-        el.style.setProperty('left', `${posX}%`, 'important');
-        el.style.setProperty('top', `${posY}%`, 'important');
-        el.style.setProperty('bottom', 'auto', 'important');
-        el.style.setProperty('right', 'auto', 'important');
-        el.style.setProperty('margin', '0', 'important');
-        el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
-        el.style.setProperty('text-align', 'center', 'important');
-      } catch (e) {}
-    });
-  }
 
   function injectSubtitleStyles() {
     if (!subtitleStyleTag) {
@@ -499,49 +486,29 @@
       (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
-    const { fontSize, fontColor, brightness, bgOpacity, outline, fontFamily, posX, posY } = state.subtitles;
-    const bg = bgOpacity > 0 ? `rgba(0, 0, 0, ${bgOpacity / 100})` : 'transparent';
-    const textShadow = outline
-      ? '0 2px 4px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9), 1px 1px 2px #000, -1px -1px 2px #000'
-      : 'none';
+    // IF SUBTITLE MODIFIER IS DISABLED: Leave native captions 100% untouched!
+    if (!state.subtitles.enabled) {
+      if (state.subtitles.brightness < 100) {
+        subtitleStyleTag.textContent = `
+          .ytp-caption-segment, .player-timedtext, .atvwebplayersdk-subtitle-text {
+            filter: brightness(${state.subtitles.brightness}%) !important;
+          }
+        `;
+      } else {
+        subtitleStyleTag.textContent = '';
+      }
+      return;
+    }
+
+    // When Subtitle Modifier IS enabled: position ONLY the cue box (.caption-window)
+    const { brightness, posX, posY } = state.subtitles;
     const filter = `brightness(${brightness}%)`;
 
-    const textSelectors = [
-      '.player-timedtext',
-      '.player-timedtext-text-container',
-      '.player-timedtext-text-container span',
-      '.atvwebplayersdk-subtitle-text',
-      '.shaka-text-container span',
-      '.subtitle-display span',
-      '.ytp-caption-segment',
-      '.caption-visual-line',
-      '.velox-custom-sub-text'
-    ].join(', ');
-
-    const containerSelectors = [
-      '#ytp-caption-window-container',
-      '.ytp-caption-window-container',
-      '.caption-window',
-      '.ytp-caption-window-bottom',
-      '.ytp-caption-window-rollup',
-      '.player-timedtext',
-      '.player-timedtext-text-container',
-      '.atvwebplayersdk-subtitles-container',
-      '.atvwebplayersdk-captions-overlay',
-      '.shaka-text-container'
-    ].join(', ');
-
     subtitleStyleTag.textContent = `
-      ${textSelectors} {
-        font-size: ${fontSize}px !important;
-        color: ${fontColor} !important;
-        background-color: ${bg} !important;
-        filter: ${filter} !important;
-        text-shadow: ${textShadow} !important;
-        font-family: ${fontFamily}, system-ui, sans-serif !important;
-        transition: filter 0.15s ease, font-size 0.15s ease !important;
-      }
-      ${containerSelectors} {
+      .caption-window,
+      .caption-window.ytp-caption-window-bottom,
+      .caption-window.ytp-caption-window-rollup,
+      .player-timedtext-text-container {
         position: absolute !important;
         left: ${posX}% !important;
         top: ${posY}% !important;
@@ -549,26 +516,15 @@
         right: auto !important;
         margin: 0 !important;
         transform: translate(-50%, -50%) !important;
+        width: auto !important;
+        max-width: 90% !important;
         text-align: center !important;
-        display: flex !important;
-        justify-content: center !important;
         cursor: grab !important;
       }
-      .caption-window:active,
-      .ytp-caption-window-container:active,
-      .player-timedtext:active {
-        cursor: grabbing !important;
+      .ytp-caption-segment, .player-timedtext, .atvwebplayersdk-subtitle-text {
+        filter: ${filter} !important;
       }
     `;
-
-    const anchor = document.getElementById('veloxcine-subtitle-anchor');
-    if (anchor) {
-      anchor.style.left = `${posX}%`;
-      anchor.style.top = `${posY}%`;
-      anchor.style.transform = 'translate(-50%, -50%)';
-    }
-
-    forceNativeCaptionPosition();
   }
 
   function toggleDimmer() {
@@ -893,18 +849,29 @@
       const platform = state.detectedPlatform;
       const prof = platform !== 'generic' && settings.profiles?.[platform] ? settings.profiles[platform] : (settings.global || {});
 
+      // Aspect Override Setting
+      if (prof.aspectEnabled !== undefined) state.aspect.enabled = Boolean(prof.aspectEnabled);
+      if (prof.defaultAspect) state.aspect.mode = prof.defaultAspect;
+      applyAspectTransform();
+
+      // Subtitle Modifier Setting
+      if (prof.subEnabled !== undefined) state.subtitles.enabled = Boolean(prof.subEnabled);
+      if (prof.subPosition) {
+        state.subtitles.preset = prof.subPosition;
+        if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 12; }
+        else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
+        else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 96; }
+        else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 4; }
+      }
+      if (prof.brightness !== undefined) {
+        state.subtitles.brightness = prof.brightness;
+      }
+      injectSubtitleStyles();
+
       if (prof.adWarpEnabled !== undefined) state.adWarp.enabled = prof.adWarpEnabled;
       if (prof.bingeEnabled !== undefined) {
         state.binge.autoSkipIntro = prof.bingeEnabled;
         state.binge.autoSkipRecap = prof.bingeEnabled;
-      }
-      if (prof.brightness !== undefined) {
-        state.subtitles.brightness = prof.brightness;
-        injectSubtitleStyles();
-      }
-      if (prof.defaultAspect) {
-        state.aspect.mode = prof.defaultAspect;
-        applyAspectTransform();
       }
     } catch (e) {}
   }

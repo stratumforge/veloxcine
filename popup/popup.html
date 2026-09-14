@@ -81,13 +81,21 @@
       </div>
 
       <div class="vc-platform-pane" id="platform-pane">
+        <!-- Aspect Ratio Modifier -->
         <div class="vc-setting-row">
-          <label>Default Aspect Ratio</label>
+          <label>Aspect Ratio Override</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-aspect">
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+        <div class="vc-setting-row" id="row-aspect-select" style="display:none; padding-left: 10px; border-left: 2px solid var(--vc-accent);">
+          <label>Target Aspect</label>
           <select id="sel-aspect" class="vc-select">
-            <option value="original">Original (Reset)</option>
             <option value="ultrawide">21:9 Ultrawide (Crop Black Bars)</option>
             <option value="crop169">16:9 Fill Screen</option>
             <option value="stretch">Stretch to Fit</option>
+            <option value="original">Original (Reset)</option>
           </select>
         </div>
 
@@ -121,6 +129,24 @@
             <input type="checkbox" id="chk-yt-shorts">
             <span class="vc-slider"></span>
           </label>
+        </div>
+
+        <!-- Subtitle Position Modifier -->
+        <div class="vc-setting-row">
+          <label>Subtitle Position Modifier</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-sub-modifier">
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+        <div class="vc-setting-row" id="row-sub-select" style="display:none; padding-left: 10px; border-left: 2px solid var(--vc-accent);">
+          <label>Subtitle Position</label>
+          <select id="sel-sub-pos" class="vc-select">
+            <option value="bottom-center">Bottom Center (Default)</option>
+            <option value="bottom-black-bar">Bottom Black Bar (Cinema)</option>
+            <option value="top-center">Top Center</option>
+            <option value="top-black-bar">Top Black Bar</option>
+          </select>
         </div>
 
         <div class="vc-setting-row">

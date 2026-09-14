@@ -24,7 +24,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCheckout = document.getElementById('btn-checkout');
 
   const ptabs = document.querySelectorAll('.vc-ptab');
+  const chkAspect = document.getElementById('chk-aspect');
+  const rowAspectSelect = document.getElementById('row-aspect-select');
   const selAspect = document.getElementById('sel-aspect');
+  const chkSubModifier = document.getElementById('chk-sub-modifier');
+  const rowSubSelect = document.getElementById('row-sub-select');
+  const selSubPos = document.getElementById('sel-sub-pos');
   const chkAdwarp = document.getElementById('chk-adwarp');
   const chkBinge = document.getElementById('chk-binge');
   const chkYtTheater = document.getElementById('chk-yt-theater');
@@ -155,7 +160,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settings = data.veloxcine_settings || {};
     const prof = platform === 'global' ? (settings.global || {}) : (settings.profiles?.[platform] || {});
 
+    const aspectEnabled = Boolean(prof.aspectEnabled);
+    if (chkAspect) {
+      chkAspect.checked = aspectEnabled;
+      if (rowAspectSelect) rowAspectSelect.style.display = aspectEnabled ? 'flex' : 'none';
+    }
     if (prof.defaultAspect || prof.customAspect) selAspect.value = prof.defaultAspect || prof.customAspect;
+
+    const subEnabled = Boolean(prof.subEnabled);
+    if (chkSubModifier) {
+      chkSubModifier.checked = subEnabled;
+      if (rowSubSelect) rowSubSelect.style.display = subEnabled ? 'flex' : 'none';
+    }
+    if (prof.subPosition && selSubPos) selSubPos.value = prof.subPosition;
+
     if (prof.adWarpEnabled !== undefined) chkAdwarp.checked = prof.adWarpEnabled;
     if (prof.bingeEnabled !== undefined) chkBinge.checked = prof.bingeEnabled;
     if (prof.ytTheater !== undefined) chkYtTheater.checked = prof.ytTheater;
@@ -168,8 +186,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settings = data.veloxcine_settings || { global: {}, profiles: {} };
 
     const update = {
+      aspectEnabled: chkAspect ? chkAspect.checked : false,
       defaultAspect: selAspect.value,
       customAspect: selAspect.value,
+      subEnabled: chkSubModifier ? chkSubModifier.checked : false,
+      subPosition: selSubPos ? selSubPos.value : 'bottom-center',
       adWarpEnabled: chkAdwarp.checked,
       bingeEnabled: chkBinge.checked,
       ytTheater: chkYtTheater.checked,
@@ -187,7 +208,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.storage.local.set({ veloxcine_settings: settings });
   }
 
+  if (chkAspect) {
+    chkAspect.addEventListener('change', () => {
+      if (rowAspectSelect) rowAspectSelect.style.display = chkAspect.checked ? 'flex' : 'none';
+      saveCurrentPlatformSettings();
+    });
+  }
   selAspect.addEventListener('change', saveCurrentPlatformSettings);
+
+  if (chkSubModifier) {
+    chkSubModifier.addEventListener('change', () => {
+      if (rowSubSelect) rowSubSelect.style.display = chkSubModifier.checked ? 'flex' : 'none';
+      saveCurrentPlatformSettings();
+    });
+  }
+  if (selSubPos) selSubPos.addEventListener('change', saveCurrentPlatformSettings);
+
   chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
   chkBinge.addEventListener('change', saveCurrentPlatformSettings);
   chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
