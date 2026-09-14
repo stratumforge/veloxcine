@@ -33,10 +33,24 @@
         if (stored[DEV_OVERRIDE_KEY] !== undefined) {
           const isDevPrem = Boolean(stored[DEV_OVERRIDE_KEY]);
           this._state.isPremium = isDevPrem;
-          this._state.tierName = isDevPrem ? 'Lifetime Premium (Dev Test)' : 'Free Tier (Dev Test)';
+          this._state.tierName = isDevPrem ? 'Lifetime Premium (Dev Test)' : 'Free Tier';
           this._state.isDevOverride = true;
         } else if (stored[STORAGE_KEY]) {
           this._state = { ...this._state, ...stored[STORAGE_KEY] };
+        } else {
+          // Default to Lifetime Pro enabled for developer testing
+          this._state.isPremium = true;
+          this._state.tierName = 'Lifetime Premium (Test Mode)';
+          this._state.isDevOverride = true;
+          await chrome.storage.local.set({
+            [DEV_OVERRIDE_KEY]: true,
+            [STORAGE_KEY]: {
+              isPremium: true,
+              userEmail: 'tester@veloxcine.app',
+              tierName: 'Lifetime Premium (Test Mode)',
+              licenseKey: 'VELOX-TEST-PRO-2026'
+            }
+          });
         }
 
         // Try getting signed in user email
@@ -112,10 +126,10 @@
         return { success: false, message: 'Invalid license key format.' };
       }
 
-      // Format check (accepts any mock key or official STRATUM- key)
-      const valid = licenseKey.toUpperCase().includes('PREMIUM') ||
-                    licenseKey.toUpperCase().startsWith('VELOX-') ||
-                    licenseKey.toUpperCase().startsWith('STRATUM-');
+      // Format check (accepts any mock key, PRO, TEST, or official STRATUM- key)
+      const k = licenseKey.toUpperCase();
+      const valid = k.includes('PREMIUM') || k.includes('PRO') || k.includes('TEST') ||
+                    k.startsWith('VELOX') || k.startsWith('STRATUM');
 
       if (valid) {
         this._state.isPremium = true;

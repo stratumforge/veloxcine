@@ -183,12 +183,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function notifyActiveTab(update) {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.id) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'APPLY_SETTINGS_NOW',
-          settings: update
-        }).catch(() => {});
+      const tabs = await chrome.tabs.query({ active: true });
+      for (const tab of tabs) {
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'APPLY_SETTINGS_NOW',
+            settings: update
+          }).catch(() => {});
+        }
       }
     } catch (e) {}
   }
@@ -226,10 +228,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (chkAspect) {
     chkAspect.addEventListener('change', () => {
       if (rowAspectSelect) rowAspectSelect.style.display = chkAspect.checked ? 'flex' : 'none';
+      if (!chkAspect.checked) selAspect.value = 'original';
       saveCurrentPlatformSettings();
     });
   }
-  selAspect.addEventListener('change', saveCurrentPlatformSettings);
+  if (selAspect) {
+    selAspect.addEventListener('change', () => {
+      if (selAspect.value !== 'original') {
+        if (chkAspect) chkAspect.checked = true;
+        if (rowAspectSelect) rowAspectSelect.style.display = 'flex';
+      }
+      saveCurrentPlatformSettings();
+    });
+  }
 
   if (chkSubModifier) {
     chkSubModifier.addEventListener('change', () => {
@@ -237,13 +248,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveCurrentPlatformSettings();
     });
   }
-  if (selSubPos) selSubPos.addEventListener('change', saveCurrentPlatformSettings);
+  if (selSubPos) {
+    selSubPos.addEventListener('change', () => {
+      if (chkSubModifier) chkSubModifier.checked = true;
+      if (rowSubSelect) rowSubSelect.style.display = 'flex';
+      saveCurrentPlatformSettings();
+    });
+  }
 
-  chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
-  chkBinge.addEventListener('change', saveCurrentPlatformSettings);
-  chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
-  chkYtShorts.addEventListener('change', saveCurrentPlatformSettings);
-  selDimmer.addEventListener('change', saveCurrentPlatformSettings);
+  if (chkAdwarp) chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
+  if (chkBinge) chkBinge.addEventListener('change', saveCurrentPlatformSettings);
+  if (chkYtTheater) chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
+  if (chkYtShorts) chkYtShorts.addEventListener('change', saveCurrentPlatformSettings);
+  if (selDimmer) selDimmer.addEventListener('change', saveCurrentPlatformSettings);
 
   // Auto-detect current tab platform
   try {
