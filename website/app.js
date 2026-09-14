@@ -160,5 +160,17 @@ document.addEventListener('keydown', (e) => {
     if (paymentDesc) paymentDesc.textContent = 'Instant activation via Apple Pay, Google Pay & Credit/Debit Cards.';
     if (btnCheckoutText) btnCheckoutText.textContent = 'Get Lifetime Pro • $12.99';
     if (popularBadge) popularBadge.textContent = 'GLOBAL PASS • ONE-TIME';
+
+  // Dodo Payments Checkout Endpoints
+  const DODO_INR_CHECKOUT = "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1";
+  const DODO_USD_CHECKOUT = "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
+
+  const btnCheckout = document.getElementById('btn-pro-checkout');
+  if (btnCheckout) {
+    btnCheckout.href = isIndia ? DODO_INR_CHECKOUT : DODO_USD_CHECKOUT;
+    btnCheckout.target = "_blank";
+    btnCheckout.rel = "noopener noreferrer";
+  }
+
   }
 })();

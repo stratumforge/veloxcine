@@ -205,6 +205,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceAmount.textContent = '$12.99';
         pricePeriod.textContent = 'One-Time Lifetime (Apple Pay & Cards)';
         if (btnCheckout) btnCheckout.textContent = 'Unlock Lifetime ($12.99)';
+
+    if (btnCheckout) {
+      btnCheckout.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetUrl = isIndian ? "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1" : "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
+        chrome.tabs.create({ url: targetUrl });
+      });
+    }
+
       }
     }
   })();
