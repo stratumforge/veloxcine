@@ -424,8 +424,9 @@
      3. ASPECT RATIO & BLACK BAR ELIMINATOR
      ========================================================================== */
   function applyAspectTransform() {
-    const video = state.activeVideo;
+    const video = state.activeVideo || findPrimaryVideo();
     if (!video) return;
+    if (!state.activeVideo) state.activeVideo = video;
 
     // If Aspect Ratio Override is NOT enabled, reset to natural original
     if (!state.aspect.enabled || state.aspect.mode === 'original') {
@@ -800,6 +801,19 @@
       if (isDragging) {
         isDragging = false;
         showToast(`Subtitle Position Saved (${state.subtitles.posX}%, ${state.subtitles.posY}%)`);
+        chrome.storage.local.get('veloxcine_settings').then(data => {
+          const s = data.veloxcine_settings || { global: {}, profiles: {} };
+          s.global = s.global || {};
+          s.global.subEnabled = true;
+          s.global.subPosition = `${state.subtitles.posX}%,${state.subtitles.posY}%`;
+          if (state.detectedPlatform !== 'generic') {
+            s.profiles = s.profiles || {};
+            s.profiles[state.detectedPlatform] = s.profiles[state.detectedPlatform] || {};
+            s.profiles[state.detectedPlatform].subEnabled = true;
+            s.profiles[state.detectedPlatform].subPosition = s.global.subPosition;
+          }
+          chrome.storage.local.set({ veloxcine_settings: s });
+        }).catch(() => {});
       }
     }
 
@@ -857,10 +871,11 @@
   function resetAllSettingsToDefaults() {
     state.aspect.enabled = false;
     state.aspect.mode = 'original';
-    if (state.activeVideo) {
-      state.activeVideo.style.transform = '';
-      state.activeVideo.style.objectFit = '';
-      state.activeVideo.style.transition = '';
+    const video = state.activeVideo || findPrimaryVideo();
+    if (video) {
+      video.style.transform = '';
+      video.style.objectFit = '';
+      video.style.transition = '';
     }
 
     state.subtitles.enabled = false;
@@ -872,7 +887,7 @@
     if (subtitleStyleTag) {
       subtitleStyleTag.textContent = '';
     }
-    document.querySelectorAll('.caption-window, .player-timedtext, .player-timedtext-text-container').forEach(el => {
+    document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup, .player-timedtext, .player-timedtext-text-container').forEach(el => {
       el.style.transform = '';
       el.style.left = '';
       el.style.top = '';
@@ -880,6 +895,8 @@
       el.style.right = '';
       el.style.position = '';
       el.style.margin = '';
+      el.style.opacity = '';
+      el.style.filter = '';
     });
     window.dispatchEvent(new Event('resize'));
 
@@ -889,7 +906,7 @@
     state.youtube.autoTheater = false;
     state.youtube.hideShorts = false;
 
-    showToast('↺ Settings Reset to Defaults');
+    showToast('↺ VeloxCine: Subtitles & Settings Reset to Defaults');
   }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

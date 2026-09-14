@@ -40,14 +40,14 @@
         <button class="vc-btn-upgrade" id="btn-upgrade">Get Lifetime</button>
       </div>
 
-      <!-- Developer Test Mode Switch (Hidden for end users) -->
-      <div class="vc-dev-toggle" style="display: none;">
-        <span class="vc-dev-label">⚡ Developer Mock Tier:</span>
+      <!-- Developer Test Mode Switch -->
+      <div class="vc-dev-toggle" style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 12px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px;">
+        <span class="vc-dev-label" style="font-size: 11px; font-weight: 600; color: #fbbf24;">⚡ Testing Mode (Pro Tier):</span>
         <label class="vc-switch">
-          <input type="checkbox" id="dev-tier-toggle">
+          <input type="checkbox" id="dev-tier-toggle" checked>
           <span class="vc-slider"></span>
         </label>
-        <span class="vc-dev-state" id="dev-tier-state">Free</span>
+        <span class="vc-dev-state" id="dev-tier-state" style="font-size: 11px; font-weight: 700; color: #fbbf24;">Premium</span>
       </div>
 
       <!-- License Activation Input -->
