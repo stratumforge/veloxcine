@@ -670,6 +670,7 @@
         .ytp-caption-segment,
         .atvwebplayersdk-captions-text,
         span.atvwebplayersdk-captions-text,
+        span[class*="captions-text"],
         .atvwebplayersdk-subtitle-text,
         .shaka-text-container span {
           opacity: ${opacityVal} !important;
@@ -685,6 +686,7 @@
         .ytp-caption-segment,
         .atvwebplayersdk-captions-text,
         span.atvwebplayersdk-captions-text,
+        span[class*="captions-text"],
         .atvwebplayersdk-subtitle-text,
         .shaka-text-container span {
           color: ${fontColor} !important;
@@ -692,29 +694,43 @@
       `;
     }
 
-    // 3. Prime Video Overlay Pointer-Events (CRITICAL: prevents blocking play/pause clicks across video frame)
+    // 3. Prime Video Overlay Base Structure: Keep wrappers full-screen & pass pointer-events to video
     css += `
       .atvwebplayersdk-captions-overlay,
-      .atvwebplayersdk-captions-overlay *,
+      .atvwebplayersdk-captions-overlay > div,
       div[class*="captions-overlay"],
-      div[class*="captions-overlay"] * {
+      div[class*="captions-overlay"] > div {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
         pointer-events: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        transform: none !important;
       }
       .atvwebplayersdk-captions-text,
       span.atvwebplayersdk-captions-text,
+      span[class*="captions-text"],
       .ytp-caption-segment {
         pointer-events: auto !important;
         cursor: grab !important;
         user-select: none !important;
+        display: inline !important;
+        white-space: pre-wrap !important;
+        line-height: 1.4 !important;
+        text-align: center !important;
       }
       .atvwebplayersdk-captions-text:active,
       span.atvwebplayersdk-captions-text:active,
+      span[class*="captions-text"]:active,
       .ytp-caption-segment:active {
         cursor: grabbing !important;
       }
     `;
 
-    // 4. Subtitle Position & Natural Dimensions (Prevents squishing into 1-word column)
+    // 4. Subtitle Position & Natural Dimensions (Fixes squishing and cursor tracking)
     if (enabled) {
       if (isCustomDrag && typeof posX === 'number' && typeof posY === 'number') {
         // Dragged manually with cursor: exact percentage coordinates without jump
@@ -737,9 +753,11 @@
             cursor: grab !important;
             pointer-events: auto !important;
           }
-          /* Prime Video Dragged: Natural max-content width prevents column squishing */
-          .atvwebplayersdk-captions-overlay > div,
-          div[class*="captions-overlay"] > div {
+          /* Prime Video Dragged: Target the inner positioned div directly, eliminate bottom: 30px conflict */
+          .atvwebplayersdk-captions-overlay > div > div,
+          div[class*="captions-overlay"] > div > div,
+          .atvwebplayersdk-captions-overlay div:has(> p),
+          div[class*="captions-overlay"] div:has(> p) {
             position: absolute !important;
             left: ${posX}% !important;
             top: ${posY}% !important;
@@ -753,15 +771,17 @@
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
+            justify-content: flex-start !important;
+            height: auto !important;
+            pointer-events: none !important;
           }
-          .atvwebplayersdk-captions-text,
-          span.atvwebplayersdk-captions-text {
-            display: inline-block !important;
+          .atvwebplayersdk-captions-overlay p,
+          div[class*="captions-overlay"] p {
             width: auto !important;
             max-width: 100% !important;
-            white-space: normal !important;
-            line-height: 1.35 !important;
             text-align: center !important;
+            margin: 0 !important;
+            pointer-events: none !important;
           }
         `;
       } else {
@@ -800,9 +820,11 @@
             cursor: grab !important;
             pointer-events: auto !important;
           }
-          /* Prime Video Preset: Full width container centered horizontally with correct vertical positioning */
-          .atvwebplayersdk-captions-overlay > div,
-          div[class*="captions-overlay"] > div {
+          /* Prime Video Preset: Full width inner line container centered horizontally */
+          .atvwebplayersdk-captions-overlay > div > div,
+          div[class*="captions-overlay"] > div > div,
+          .atvwebplayersdk-captions-overlay div:has(> p),
+          div[class*="captions-overlay"] div:has(> p) {
             position: absolute !important;
             width: 100% !important;
             left: 0 !important;
@@ -814,23 +836,17 @@
             flex-direction: column !important;
             align-items: center !important;
             transform: none !important;
+            height: auto !important;
+            pointer-events: none !important;
           }
           .atvwebplayersdk-captions-overlay p,
           div[class*="captions-overlay"] p {
             width: 100% !important;
             text-align: center !important;
             margin: 0 !important;
-            padding: 0 5% !important;
+            padding: 0 40px !important;
             box-sizing: border-box !important;
-          }
-          .atvwebplayersdk-captions-text,
-          span.atvwebplayersdk-captions-text {
-            display: inline-block !important;
-            width: auto !important;
-            max-width: 90% !important;
-            white-space: normal !important;
-            line-height: 1.35 !important;
-            text-align: center !important;
+            pointer-events: none !important;
           }
         `;
       }
