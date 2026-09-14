@@ -1,0 +1,659 @@
+/* VeloxCine™ Universal Streaming & Subtitle Suite - Enhanced Overlay Styles */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --velox-bg: rgba(10, 13, 22, 0.9);
+  --velox-card: rgba(20, 26, 42, 0.75);
+  --velox-border: rgba(255, 255, 255, 0.1);
+  --velox-accent: #00e5ff;
+  --velox-accent-glow: rgba(0, 229, 255, 0.35);
+  --velox-purple: #8b5cf6;
+  --velox-text: #f1f5f9;
+  --velox-text-muted: #94a3b8;
+  --velox-gold: #fbbf24;
+  --velox-green: #10b981;
+  --velox-font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --velox-radius: 14px;
+}
+
+/* Color Themes */
+[data-velox-theme="purple"] {
+  --velox-accent: #a855f7;
+  --velox-accent-glow: rgba(168, 85, 247, 0.4);
+}
+[data-velox-theme="gold"] {
+  --velox-accent: #f59e0b;
+  --velox-accent-glow: rgba(245, 158, 11, 0.4);
+}
+[data-velox-theme="green"] {
+  --velox-accent: #10b981;
+  --velox-accent-glow: rgba(16, 185, 129, 0.4);
+}
+[data-velox-theme="rose"] {
+  --velox-accent: #f43f5e;
+  --velox-accent-glow: rgba(244, 63, 94, 0.4);
+}
+
+/* Base HUD Root Container */
+#veloxcine-hud-root {
+  position: fixed;
+  z-index: 2147483645;
+  font-family: var(--velox-font);
+  color: var(--velox-text);
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+#veloxcine-hud-root * {
+  box-sizing: border-box;
+}
+
+/* Floating Trigger Pill */
+.velox-floating-trigger {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--velox-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--velox-border);
+  padding: 8px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.velox-floating-trigger:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--velox-accent);
+  box-shadow: 0 10px 30px var(--velox-accent-glow);
+}
+
+.velox-trigger-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.velox-trigger-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #ffffff 30%, var(--velox-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.velox-trigger-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.velox-badge-premium {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.velox-badge-free {
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+/* Floating HUD Main Panel */
+.velox-panel {
+  position: absolute;
+  top: 70px;
+  right: 24px;
+  width: 380px;
+  max-height: calc(100vh - 90px);
+  background: var(--velox-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--velox-border);
+  border-radius: var(--velox-radius);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+.velox-panel.velox-hidden {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  pointer-events: none;
+}
+
+/* Panel Header */
+.velox-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--velox-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.velox-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.velox-brand-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #fff;
+}
+
+.velox-brand-name span {
+  color: var(--velox-accent);
+}
+
+.velox-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.velox-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--velox-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.velox-icon-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Top Platform Switcher Bar */
+.velox-platform-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--velox-border);
+}
+
+.velox-p-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--velox-text-muted);
+  transition: all 0.2s;
+}
+
+.velox-p-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.velox-p-btn.active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: var(--velox-accent);
+  color: var(--velox-accent);
+}
+
+.velox-p-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+}
+
+/* Navigation Tabs */
+.velox-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--velox-border);
+  padding: 4px;
+}
+
+.velox-tab {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--velox-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.velox-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.velox-tab.active {
+  color: var(--velox-accent);
+  background: rgba(0, 229, 255, 0.12);
+}
+
+/* Tab Content Areas */
+.velox-tab-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 520px;
+}
+
+.velox-tab-pane {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.velox-tab-pane.active {
+  display: flex;
+}
+
+/* Accordion / Collapsible Group */
+.velox-group {
+  background: var(--velox-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.velox-group-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.velox-group-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.velox-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.velox-group-body {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.velox-group.collapsed .velox-group-body {
+  display: none;
+}
+
+.velox-group-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--velox-text-muted);
+  transition: transform 0.2s;
+}
+
+.velox-group.collapsed .velox-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.velox-badge-mini {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--velox-gold);
+}
+
+/* Grids and Buttons */
+.velox-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.velox-btn-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.velox-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--velox-text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.velox-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.velox-btn.active {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--velox-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Sliders */
+.velox-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.velox-slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--velox-text-muted);
+}
+
+.velox-slider-value {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--velox-accent);
+  font-weight: 700;
+}
+
+.velox-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.velox-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--velox-accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--velox-accent);
+  transition: transform 0.15s;
+}
+
+.velox-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+/* Switch & Toggles */
+.velox-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.velox-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.velox-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.velox-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  transition: 0.2s;
+}
+
+.velox-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+input:checked + .velox-switch-slider {
+  background-color: var(--velox-accent);
+}
+
+input:checked + .velox-switch-slider:before {
+  transform: translateX(14px);
+  background-color: #000;
+}
+
+/* Color Themes Swatches */
+.velox-theme-palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.velox-theme-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s;
+}
+
+.velox-theme-dot:hover {
+  transform: scale(1.2);
+}
+
+.velox-theme-dot.active {
+  border-color: #fff;
+}
+
+/* Draggable Subtitle Anchor Container */
+#veloxcine-subtitle-anchor {
+  position: absolute;
+  z-index: 2147483640;
+  pointer-events: auto;
+  cursor: grab;
+  padding: 6px 14px;
+  border: 1px dashed rgba(0, 229, 255, 0.4);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  user-select: none;
+  transition: border-color 0.2s, background 0.2s;
+  min-width: 180px;
+}
+
+#veloxcine-subtitle-anchor:active {
+  cursor: grabbing;
+}
+
+#veloxcine-subtitle-anchor:hover,
+#veloxcine-subtitle-anchor.dragging {
+  border-color: var(--velox-accent);
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 20px var(--velox-accent-glow);
+}
+
+.velox-anchor-handle {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--velox-accent);
+  color: #000;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+#veloxcine-subtitle-anchor:hover .velox-anchor-handle,
+#veloxcine-subtitle-anchor.dragging .velox-anchor-handle {
+  opacity: 1;
+}
+
+.velox-custom-sub-text {
+  font-family: inherit;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  display: inline-block;
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+/* On-Screen Quick Nudge Buttons */
+.velox-nudge-widget {
+  position: absolute;
+  bottom: 30px;
+  right: 24px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 13, 22, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--velox-border);
+  padding: 4px 8px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  z-index: 2147483641;
+  transition: opacity 0.2s;
+}
+
+.velox-nudge-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.velox-nudge-btn:hover {
+  background: var(--velox-accent);
+  color: #000;
+}
+
+/* Toast */
+.velox-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--velox-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--velox-accent);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px var(--velox-accent-glow);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.velox-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.velox-file-drop {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--velox-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.velox-file-drop:hover {
+  border-color: var(--velox-accent);
+  color: #fff;
+  background: rgba(0, 229, 255, 0.08);
+}

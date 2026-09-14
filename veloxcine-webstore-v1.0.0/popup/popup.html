@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxCine&trade; Controller</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="vc-container">
+    <!-- Header -->
+    <header class="vc-header">
+      <div class="vc-brand">
+        <div class="vc-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M5 3L19 12L5 21V3Z" fill="url(#vcGrad)"/>
+            <defs>
+              <linearGradient id="vcGrad" x1="5" y1="3" x2="19" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00e5ff"/>
+                <stop offset="1" stop-color="#8b5cf6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="vc-title">Velox<span>Cine</span>&trade;</h1>
+          <p class="vc-byline">By StratumForge Labs&trade;</p>
+        </div>
+      </div>
+      <div class="vc-badge-tier" id="tier-badge">FREE TIER</div>
+    </header>
+
+    <!-- License & Account Card -->
+    <section class="vc-card vc-account-card">
+      <div class="vc-account-header">
+        <div class="vc-account-info">
+          <div class="vc-label">CONNECTED GMAIL</div>
+          <div class="vc-email" id="user-email">forgestratum@gmail.com</div>
+        </div>
+        <button class="vc-btn-upgrade" id="btn-upgrade">Get Lifetime</button>
+      </div>
+
+      <!-- Developer Test Mode Switch -->
+      <div class="vc-dev-toggle">
+        <span class="vc-dev-label">⚡ Developer Mock Tier:</span>
+        <label class="vc-switch">
+          <input type="checkbox" id="dev-tier-toggle">
+          <span class="vc-slider"></span>
+        </label>
+        <span class="vc-dev-state" id="dev-tier-state">Free</span>
+      </div>
+
+      <!-- License Activation Input -->
+      <div class="vc-license-row">
+        <input type="text" id="license-input" class="vc-input" placeholder="Enter Lifetime License Key">
+        <button class="vc-btn vc-btn-secondary" id="btn-activate">Activate</button>
+      </div>
+      <div class="vc-msg" id="license-msg"></div>
+    </section>
+
+    <!-- Active Video Status -->
+    <section class="vc-card vc-status-card">
+      <div class="vc-status-row">
+        <div class="vc-status-indicator" id="status-dot"></div>
+        <div class="vc-status-text" id="status-text">Scanning for active streaming video...</div>
+      </div>
+      <div class="vc-quick-actions">
+        <button class="vc-btn vc-btn-action" id="btn-toggle-hud">Toggle In-Page HUD (H)</button>
+        <button class="vc-btn vc-btn-action" id="btn-cycle-aspect">Cycle Aspect (Z)</button>
+      </div>
+    </section>
+
+    <!-- Platform Settings Tabs (Netflix, Prime, Hotstar, YouTube, Global) -->
+    <section class="vc-card vc-platform-card">
+      <div class="vc-platform-tabs">
+        <button class="vc-ptab active" data-platform="global">Global</button>
+        <button class="vc-ptab" data-platform="netflix">Netflix</button>
+        <button class="vc-ptab" data-platform="prime">Prime</button>
+        <button class="vc-ptab" data-platform="hotstar">Hotstar</button>
+        <button class="vc-ptab" data-platform="youtube">YouTube</button>
+      </div>
+
+      <div class="vc-platform-pane" id="platform-pane">
+        <div class="vc-setting-row">
+          <label>Default Aspect Ratio</label>
+          <select id="sel-aspect" class="vc-select">
+            <option value="original">Original (Reset)</option>
+            <option value="ultrawide">21:9 Ultrawide (Crop Black Bars)</option>
+            <option value="crop169">16:9 Fill Screen</option>
+            <option value="stretch">Stretch to Fit</option>
+          </select>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>16x Hyper-Warp Ad-Skipper</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-adwarp" checked>
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>Binge Mode (Auto-Skip Intros/Recaps)</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-binge" checked>
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>YouTube Auto-Theater Mode</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-yt-theater">
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>Hide YouTube Shorts Shelf</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-yt-shorts">
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>Subtitle Dimmer (OLED/HDR)</label>
+          <select id="sel-dimmer" class="vc-select">
+            <option value="100">100% (Standard Brightness)</option>
+            <option value="75">75% (Subtle Dim)</option>
+            <option value="50">50% (Comfortable Dark)</option>
+            <option value="30">30% (Eye-Saver HDR)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Test Playground Banner -->
+    <footer class="vc-footer">
+      <button class="vc-btn-playground" id="btn-playground">
+        🚀 Launch Interactive Test Playground
+      </button>
+    </footer>
+  </div>
+
+  <!-- Upgrade Modal -->
+  <div class="vc-modal-overlay" id="upgrade-modal" style="display:none;">
+    <div class="vc-modal">
+      <div class="vc-modal-header">
+        <h3>Unlock VeloxCine&trade; Lifetime</h3>
+        <button class="vc-icon-btn" id="btn-close-modal">✕</button>
+      </div>
+      <div class="vc-modal-body">
+        <p class="vc-modal-desc">
+          One-time payment forever. Tied to your Gmail account (forgestratum@gmail.com). Works across all browsers and upcoming Android TV / Fire TV apps.
+        </p>
+        <ul class="vc-perks-list">
+          <li>⚡ 16x Hyper-Warp Ad-Skipping + Auto-Mute</li>
+          <li>🎯 Freeform Drag & Drop Subtitles anywhere on screen</li>
+          <li>💡 OLED / HDR Subtitle Dimmer (0%–100%)</li>
+          <li>📁 Unlimited External Subtitle (.srt / .vtt) Loader</li>
+          <li>🖥️ 21:9 Ultrawide Black Bar Eliminator & Pan-Zoom</li>
+          <li>✨ GPU Super-Resolution Sharpening Shader</li>
+          <li>🔊 600% Speech Dialogue & Audio Booster</li>
+          <li>🍿 Automated Binge Mode (Skip Intros & Recaps)</li>
+        </ul>
+        <div class="vc-price-tag" id="popup-price-tag">
+          <span id="popup-price-amount">₹399</span>
+          <span id="popup-price-period">One-Time Lifetime (UPI & Cards)</span>
+        </div>
+        <button class="vc-btn-checkout" id="btn-checkout">Unlock Lifetime License</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../core/licensing.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

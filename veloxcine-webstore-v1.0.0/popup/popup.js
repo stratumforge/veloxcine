@@ -126,7 +126,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   btnUpgrade.addEventListener('click', () => upgradeModal.style.display = 'flex');
   btnCloseModal.addEventListener('click', () => upgradeModal.style.display = 'none');
-  
+  btnCheckout.addEventListener('click', async () => {
+    await VeloxLicense.setDevTier(true);
+    await updateLicenseUI();
+    upgradeModal.style.display = 'none';
+  });
 
   // Platform Profile Switching
   ptabs.forEach(tab => {
@@ -202,24 +206,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         pricePeriod.textContent = 'One-Time Lifetime (Apple Pay & Cards)';
         if (btnCheckout) btnCheckout.textContent = 'Unlock Lifetime ($12.99)';
 
-    );
+    if (btnCheckout) {
+      btnCheckout.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetUrl = isIndian ? "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1" : "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
+        chrome.tabs.create({ url: targetUrl });
+      });
     }
 
       }
     }
   })();
-
-
-  // Dodo Checkout Trigger in Extension Popup
-  if (btnCheckout) {
-    btnCheckout.onclick = (e) => {
-      e.preventDefault();
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      const isIndian = tz.includes('Kolkata') || tz.includes('Calcutta') || tz.includes('India');
-      const checkoutUrl = isIndian ? "https://test.checkout.dodopayments.com/buy/pdt_0Nna6rkOllUVOkzJZyjJH?quantity=1" : "https://test.checkout.dodopayments.com/buy/pdt_0Nna7ANhDbXXOE7kjmtdA?quantity=1";
-      chrome.tabs.create({ url: checkoutUrl });
-      upgradeModal.style.display = 'none';
-    };
-  }
 
 });

@@ -1,0 +1,1160 @@
+/**
+ * VeloxCine™ Universal Streaming, Subtitle & Aspect Suite
+ * Enhanced Content Script Engine (StratumForge Labs™)
+ */
+(function () {
+  'use strict';
+
+  if (window.__veloxcine_injected) return;
+  window.__veloxcine_injected = true;
+
+  console.log('%c[VeloxCine™]%c Universal Controller Active (StratumForge Labs™)', 'background:#00e5ff;color:#000;font-weight:bold;padding:2px 6px;border-radius:4px;', 'color:#00e5ff;font-weight:bold;');
+
+  const state = {
+    activeVideo: null,
+    detectedPlatform: 'generic', // 'netflix' | 'prime' | 'hotstar' | 'appletv' | 'youtube' | 'generic'
+    viewingPlatform: 'all',      // active tab filter in HUD
+    isPremium: false,
+    hudVisible: false,
+    theme: 'cyan',
+
+    aspect: {
+      mode: 'original',
+      customZoom: 100,
+      panY: 0
+    },
+    subtitles: {
+      fontSize: 24,
+      fontColor: '#ffffff',
+      brightness: 100,
+      bgOpacity: 0,
+      outline: true,
+      posX: 50,
+      posY: 88,
+      fontFamily: 'Plus Jakarta Sans',
+      preset: 'bottom-center',
+      syncOffset: 0
+    },
+    video: {
+      sharpen: false,
+      contrast: 100,
+      brightness: 100,
+      audioBoost: 100
+    },
+    adWarp: {
+      enabled: true,
+      autoMute: true,
+      instantSkip: true,
+      isAdActive: false,
+      savedVolume: 1,
+      savedSpeed: 1
+    },
+    binge: {
+      autoSkipIntro: true,
+      autoSkipRecap: true,
+      autoNextEpisode: false
+    },
+    youtube: {
+      autoTheater: false,
+      hideShorts: false,
+      preferredRes: 'auto'
+    },
+
+    externalCues: []
+  };
+
+  // Detect Platform
+  const host = window.location.hostname;
+  if (host.includes('netflix.com')) state.detectedPlatform = 'netflix';
+  else if (host.includes('primevideo.com') || host.includes('amazon.')) state.detectedPlatform = 'prime';
+  else if (host.includes('hotstar.com')) state.detectedPlatform = 'hotstar';
+  else if (host.includes('apple.com')) state.detectedPlatform = 'appletv';
+  else if (host.includes('youtube.com')) state.detectedPlatform = 'youtube';
+
+  state.viewingPlatform = state.detectedPlatform !== 'generic' ? state.detectedPlatform : 'all';
+
+  let audioCtx = null;
+  let audioSourceNode = null;
+  let audioGainNode = null;
+
+  /* ==========================================================================
+     1. VIDEO DETECTION & MUTATION OBSERVER
+     ========================================================================== */
+  function findPrimaryVideo() {
+    const videos = Array.from(document.querySelectorAll('video'));
+    if (!videos.length) return null;
+
+    let best = videos[0];
+    let maxArea = 0;
+    for (const v of videos) {
+      const rect = v.getBoundingClientRect();
+      const area = rect.width * rect.height;
+      if (area > maxArea && rect.width > 100) {
+        maxArea = area;
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  function bindVideo(video) {
+    if (!video || state.activeVideo === video) return;
+    state.activeVideo = video;
+    console.log('[VeloxCine] Bound to primary video:', video);
+
+    applyAspectTransform();
+    applyVideoEnhancements();
+    setupAudioContext(video);
+
+    video.addEventListener('timeupdate', onVideoTimeUpdate);
+    video.addEventListener('ratechange', () => {
+      if (state.adWarp.isAdActive && state.adWarp.enabled && video.playbackRate < 15) {
+        video.playbackRate = 16.0;
+      }
+    });
+
+    // YouTube specials trigger
+    if (state.detectedPlatform === 'youtube') {
+      applyYouTubeSpecials();
+    }
+  }
+
+  const observer = new MutationObserver(() => {
+    const v = findPrimaryVideo();
+    if (v && v !== state.activeVideo) {
+      bindVideo(v);
+    }
+    if (state.adWarp.enabled || state.binge.autoSkipIntro) {
+      detectAdAndBingeState();
+    }
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'src', 'style']
+  });
+
+  /* ==========================================================================
+     2. 16x HYPER-WARP AD-SKIPPER & BINGE MODE OBSERVER
+     ========================================================================== */
+  function detectAdAndBingeState() {
+    const video = state.activeVideo;
+    if (!video) return;
+
+    // A. Binge Mode: Skip Intro & Skip Recap
+    if (state.binge.autoSkipIntro || state.binge.autoSkipRecap) {
+      const introButtons = [
+        '[data-uia="player-skip-intro"]',
+        '[data-uia="player-skip-recap"]',
+        '.watch-video--skip-content-button',
+        '.skip-element',
+        '.atvwebplayersdk-skipelement-button',
+        '.shaka-ad-skip',
+        'button.skip-intro',
+        '.velox-simulated-skip-btn'
+      ];
+      for (const sel of introButtons) {
+        const btn = document.querySelector(sel);
+        if (btn && btn.offsetParent !== null) {
+          try {
+            btn.click();
+            showToast('⚡ Binge Mode: Intro/Recap Skipped');
+          } catch (e) {}
+        }
+      }
+    }
+
+    // B. Auto Next Episode
+    if (state.binge.autoNextEpisode) {
+      const nextBtn = document.querySelector('[data-uia="next-episode-seamless-button"], .atvwebplayersdk-next-episode-button');
+      if (nextBtn && nextBtn.offsetParent !== null) {
+        try {
+          nextBtn.click();
+          showToast('⚡ Binge Mode: Next Episode Started');
+        } catch (e) {}
+      }
+    }
+
+    // C. Ad Detection
+    let isAd = false;
+    if (state.detectedPlatform === 'netflix') {
+      isAd = Boolean(document.querySelector('.ad-container, [data-uia="ad-breakpoint"]'));
+    } else if (state.detectedPlatform === 'prime') {
+      isAd = Boolean(document.querySelector('.ad-showing, .adMarker, .fuzzyCenter .ad-overlay'));
+    } else if (state.detectedPlatform === 'hotstar') {
+      isAd = Boolean(document.querySelector('.ad-timer, .ad-overlay'));
+    } else {
+      isAd = Boolean(document.querySelector('.ad-showing, .video-ads, [data-ad-active="true"]'));
+    }
+
+    // Auto-click Skip Ad buttons
+    const skipAdButtons = [
+      'button.skip-ad',
+      '.ytp-ad-skip-button',
+      '.ytp-ad-skip-button-modern',
+      '.videoAdUiSkipButton',
+      '.fuzzyCenter .skip-element',
+      '.velox-simulated-skip-btn'
+    ];
+    for (const sel of skipAdButtons) {
+      const btn = document.querySelector(sel);
+      if (btn && btn.offsetParent !== null) {
+        try {
+          btn.click();
+          showToast('⚡ VeloxCine: Skip Clicked');
+        } catch (e) {}
+      }
+    }
+
+    // 16x Fast Forward + Auto Mute
+    if (isAd && !state.adWarp.isAdActive) {
+      if (!VeloxLicense.isPremium()) {
+        showToast('ℹ️ Free Tier: Standard Skip (Upgrade for 16x Hyper-Warp)');
+        return;
+      }
+      state.adWarp.isAdActive = true;
+      state.adWarp.savedSpeed = video.playbackRate || 1;
+      state.adWarp.savedVolume = video.volume;
+      if (state.adWarp.autoMute) video.muted = true;
+      try {
+        video.playbackRate = 16.0;
+      } catch (e) {
+        video.playbackRate = 8.0;
+      }
+      showToast('⚡ VeloxCine: 16x Ad-Warp & Auto-Mute Active');
+    } else if (!isAd && state.adWarp.isAdActive) {
+      state.adWarp.isAdActive = false;
+      video.playbackRate = state.adWarp.savedSpeed || 1;
+      if (state.adWarp.autoMute) {
+        video.muted = false;
+        video.volume = state.adWarp.savedVolume;
+      }
+      showToast('✨ Playback Restored (1.0x)');
+    }
+  }
+
+  /* ==========================================================================
+     3. ASPECT RATIO & BLACK BAR ELIMINATOR
+     ========================================================================== */
+  function applyAspectTransform() {
+    const video = state.activeVideo;
+    if (!video) return;
+
+    video.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), object-fit 0.25s ease';
+
+    const mode = state.aspect.mode;
+    if (mode === 'original') {
+      video.style.transform = 'none';
+      video.style.objectFit = 'contain';
+    } else if (mode === 'ultrawide') {
+      video.style.objectFit = 'cover';
+      video.style.transform = 'scale(1.334)';
+    } else if (mode === 'crop169') {
+      video.style.objectFit = 'cover';
+      video.style.transform = 'scale(1.18)';
+    } else if (mode === 'stretch') {
+      video.style.objectFit = 'fill';
+      video.style.transform = 'none';
+    } else if (mode === 'custom') {
+      const scale = state.aspect.customZoom / 100;
+      const panY = state.aspect.panY || 0;
+      video.style.objectFit = 'cover';
+      video.style.transform = `scale(${scale}) translateY(${panY}%)`;
+    }
+  }
+
+  function cycleAspectRatio() {
+    const modes = ['original', 'ultrawide', 'crop169', 'stretch'];
+    const currentIdx = modes.indexOf(state.aspect.mode);
+    const nextMode = modes[(currentIdx + 1) % modes.length];
+
+    if ((nextMode === 'ultrawide' || nextMode === 'stretch') && !VeloxLicense.isPremium()) {
+      showToast('🔒 21:9 Ultrawide is a Lifetime Premium feature');
+      state.aspect.mode = 'original';
+    } else {
+      state.aspect.mode = nextMode;
+    }
+
+    applyAspectTransform();
+    updateHUDControls();
+    showToast(`Aspect: ${state.aspect.mode.toUpperCase()}`);
+  }
+
+  /* ==========================================================================
+     4. SUBTITLE ENGINE & DRAG-AND-DROP ANCHOR
+     ========================================================================== */
+  let subtitleStyleTag = null;
+
+  function injectSubtitleStyles() {
+    if (!subtitleStyleTag) {
+      subtitleStyleTag = document.createElement('style');
+      subtitleStyleTag.id = 'veloxcine-dynamic-subtitles';
+      document.head.appendChild(subtitleStyleTag);
+    }
+
+    const { fontSize, fontColor, brightness, bgOpacity, outline, fontFamily, posX, posY } = state.subtitles;
+    const bg = bgOpacity > 0 ? `rgba(0, 0, 0, ${bgOpacity / 100})` : 'transparent';
+    const textShadow = outline
+      ? '0 2px 4px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9), 1px 1px 2px #000, -1px -1px 2px #000'
+      : 'none';
+    const filter = `brightness(${brightness}%)`;
+
+    const selectors = [
+      '.player-timedtext',
+      '.player-timedtext-text-container',
+      '.atvwebplayersdk-subtitle-text',
+      '.shaka-text-container span',
+      '.subtitle-display span',
+      '.ytp-caption-segment',
+      '.velox-custom-sub-text'
+    ].join(', ');
+
+    subtitleStyleTag.textContent = `
+      ${selectors} {
+        font-size: ${fontSize}px !important;
+        color: ${fontColor} !important;
+        background-color: ${bg} !important;
+        filter: ${filter} !important;
+        text-shadow: ${textShadow} !important;
+        font-family: ${fontFamily}, system-ui, sans-serif !important;
+        transition: filter 0.15s ease, font-size 0.15s ease !important;
+      }
+      .player-timedtext, .atvwebplayersdk-subtitles-container {
+        position: absolute !important;
+        left: ${posX}% !important;
+        top: ${posY}% !important;
+        transform: translate(-50%, -50%) !important;
+      }
+    `;
+
+    const anchor = document.getElementById('veloxcine-subtitle-anchor');
+    if (anchor) {
+      anchor.style.left = `${posX}%`;
+      anchor.style.top = `${posY}%`;
+      anchor.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  function toggleDimmer() {
+    if (!VeloxLicense.isPremium()) {
+      showToast('🔒 Subtitle Dimmer is a Lifetime Premium feature');
+      return;
+    }
+    state.subtitles.brightness = state.subtitles.brightness === 100 ? 50 : 100;
+    injectSubtitleStyles();
+    showToast(`Subtitle Dimmer: ${state.subtitles.brightness}%`);
+  }
+
+  /* ==========================================================================
+     5. YOUTUBE SPECIALS (Auto Theater, Hide Shorts, Preferred Res)
+     ========================================================================== */
+  function applyYouTubeSpecials() {
+    if (state.detectedPlatform !== 'youtube') return;
+
+    // Auto Theater Mode
+    if (state.youtube.autoTheater) {
+      const theaterBtn = document.querySelector('.ytp-size-button');
+      const isTheater = document.querySelector('ytd-watch-flexy[theater]');
+      if (theaterBtn && !isTheater) {
+        theaterBtn.click();
+      }
+    }
+
+    // Hide Shorts Row
+    let shortsStyle = document.getElementById('veloxcine-yt-shorts');
+    if (state.youtube.hideShorts) {
+      if (!shortsStyle) {
+        shortsStyle = document.createElement('style');
+        shortsStyle.id = 'veloxcine-yt-shorts';
+        document.head.appendChild(shortsStyle);
+      }
+      shortsStyle.textContent = `
+        ytd-rich-shelf-renderer[is-shorts],
+        ytd-reel-shelf-renderer,
+        ytd-guide-entry-renderer a[title="Shorts"] {
+          display: none !important;
+        }
+      `;
+    } else if (shortsStyle) {
+      shortsStyle.remove();
+    }
+  }
+
+  /* ==========================================================================
+     6. EXTERNAL SUBTITLE PARSER
+     ========================================================================== */
+  function parseSrtOrVtt(text) {
+    const cues = [];
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    let i = 0;
+
+    function timeToSeconds(tStr) {
+      if (!tStr) return 0;
+      const parts = tStr.trim().replace(',', '.').split(':');
+      if (parts.length === 3) {
+        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+      } else if (parts.length === 2) {
+        return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+      }
+      return 0;
+    }
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('WEBVTT') || line.startsWith('NOTE')) {
+        i++;
+        continue;
+      }
+      let timeLine = line;
+      if (!timeLine.includes('-->') && i + 1 < lines.length && lines[i + 1].includes('-->')) {
+        i++;
+        timeLine = lines[i];
+      }
+      if (timeLine.includes('-->')) {
+        const [startStr, endStr] = timeLine.split('-->');
+        const start = timeToSeconds(startStr);
+        const end = timeToSeconds(endStr.trim().split(' ')[0]);
+        i++;
+        const textLines = [];
+        while (i < lines.length && lines[i].trim() !== '') {
+          textLines.push(lines[i]);
+          i++;
+        }
+        cues.push({ start, end, text: textLines.join('\n') });
+      }
+      i++;
+    }
+    return cues;
+  }
+
+  function loadExternalSubtitles(file) {
+    if (!VeloxLicense.isPremium()) {
+      showToast('🔒 External Subtitle Loader is a Lifetime Premium feature');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const cues = parseSrtOrVtt(e.target.result);
+      if (cues.length) {
+        state.externalCues = cues;
+        showToast(`Loaded ${cues.length} Cues from ${file.name}`);
+        const textElem = document.querySelector('.velox-custom-sub-text');
+        if (textElem) textElem.textContent = 'Subtitles Loaded & Synced';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function onVideoTimeUpdate() {
+    if (!state.externalCues.length || !state.activeVideo) return;
+    const current = state.activeVideo.currentTime + (state.subtitles.syncOffset || 0);
+    const match = state.externalCues.find(c => current >= c.start && current <= c.end);
+    const subElem = document.querySelector('.velox-custom-sub-text');
+    if (!subElem) return;
+
+    if (match) {
+      subElem.textContent = match.text;
+      subElem.style.display = 'inline-block';
+    } else {
+      subElem.textContent = '';
+      subElem.style.display = 'none';
+    }
+  }
+
+  /* ==========================================================================
+     7. VIDEO ENHANCEMENTS & AUDIO GAIN
+     ========================================================================== */
+  function applyVideoEnhancements() {
+    const video = state.activeVideo;
+    if (!video) return;
+
+    let filterStr = '';
+    if (state.video.sharpen) {
+      if (VeloxLicense.isPremium()) {
+        filterStr += 'contrast(106%) saturate(108%) ';
+      } else {
+        state.video.sharpen = false;
+      }
+    }
+    if (state.video.brightness !== 100) filterStr += `brightness(${state.video.brightness}%) `;
+    if (state.video.contrast !== 100) filterStr += `contrast(${state.video.contrast}%) `;
+    video.style.filter = filterStr.trim() || 'none';
+  }
+
+  function setupAudioContext(video) {
+    if (audioCtx) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      audioCtx = new AudioContext();
+      audioSourceNode = audioCtx.createMediaElementSource(video);
+      audioGainNode = audioCtx.createGain();
+      audioSourceNode.connect(audioGainNode);
+      audioGainNode.connect(audioCtx.destination);
+    } catch (e) {}
+  }
+
+  function setAudioGain(percent) {
+    if (!audioGainNode) return;
+    if (percent > 100 && !VeloxLicense.isPremium()) {
+      showToast('🔒 600% Audio Booster requires Lifetime Premium');
+      return;
+    }
+    audioGainNode.gain.value = percent / 100;
+  }
+
+  /* ==========================================================================
+     8. IN-PAGE FLOATING HUD & ON-SCREEN NUDGE OVERLAY
+     ========================================================================== */
+  function createHUD() {
+    if (document.getElementById('veloxcine-hud-root')) return;
+
+    const root = document.createElement('div');
+    root.id = 'veloxcine-hud-root';
+
+    root.innerHTML = `
+      <!-- Draggable Subtitle Box -->
+      <div id="veloxcine-subtitle-anchor" style="left: ${state.subtitles.posX}%; top: ${state.subtitles.posY}%;">
+        <div class="velox-anchor-handle">DRAG TO REPOSITION</div>
+        <span class="velox-custom-sub-text" style="display:none;"></span>
+      </div>
+
+      <!-- On-Screen Mini Nudge Widget (Bottom-Right) -->
+      <div class="velox-nudge-widget" id="velox-nudge-pill">
+        <button class="velox-nudge-btn" id="nudge-aspect" title="Cycle Aspect Ratio (Z)">Z</button>
+        <button class="velox-nudge-btn" id="nudge-dimmer" title="Toggle Subtitle Dimmer (D)">D</button>
+        <button class="velox-nudge-btn" id="nudge-open" title="Open VeloxCine HUD (H)">HUD</button>
+      </div>
+
+      <!-- Floating Trigger Pill (Top-Right) -->
+      <div class="velox-floating-trigger" id="velox-trigger-pill">
+        <div class="velox-trigger-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12L20 4L13 20L11 13L4 12Z" fill="var(--velox-accent)"/>
+          </svg>
+        </div>
+        <span class="velox-trigger-title">VeloxCine™</span>
+        <span class="velox-trigger-badge ${VeloxLicense.isPremium() ? 'velox-badge-premium' : 'velox-badge-free'}" id="velox-hud-badge">
+          ${VeloxLicense.isPremium() ? 'PREMIUM' : 'FREE'}
+        </span>
+      </div>
+
+      <!-- Main Controls Panel -->
+      <div class="velox-panel velox-hidden" id="velox-main-panel">
+        <div class="velox-header">
+          <div class="velox-brand-group">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M5 3L19 12L5 21V3Z" fill="url(#panelGrad)"/>
+              <defs>
+                <linearGradient id="panelGrad" x1="5" y1="3" x2="19" y2="21" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#00e5ff"/>
+                  <stop offset="1" stop-color="#8b5cf6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="velox-brand-name">Velox<span>Cine</span>™</div>
+          </div>
+          <div class="velox-header-actions">
+            <button class="velox-icon-btn" id="velox-close-btn" title="Close Panel (H)">✕</button>
+          </div>
+        </div>
+
+        <!-- Top Platform Switcher Bar -->
+        <div class="velox-platform-bar">
+          <button class="velox-p-btn active" data-p="all"><span class="velox-p-icon">🌐</span> All</button>
+          <button class="velox-p-btn" data-p="netflix"><span class="velox-p-icon" style="color:#e50914;">N</span> Netflix</button>
+          <button class="velox-p-btn" data-p="prime"><span class="velox-p-icon" style="color:#00a8e1;">P</span> Prime</button>
+          <button class="velox-p-btn" data-p="hotstar"><span class="velox-p-icon" style="color:#1e3a8a;">★</span> Hotstar</button>
+          <button class="velox-p-btn" data-p="youtube"><span class="velox-p-icon" style="color:#ef4444;">▶</span> YouTube</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="velox-tabs">
+          <div class="velox-tab active" data-tab="tab-aspect">Aspect</div>
+          <div class="velox-tab" data-tab="tab-subtitles">Subtitles</div>
+          <div class="velox-tab" data-tab="tab-video">Video & FX</div>
+          <div class="velox-tab" data-tab="tab-adwarp">Ad-Warp</div>
+          <div class="velox-tab" data-tab="tab-specials">Specials</div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="velox-tab-content">
+          <!-- ASPECT TAB -->
+          <div class="velox-tab-pane active" id="tab-aspect">
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Black Bar Eliminator</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-btn-grid cols-3">
+                  <button class="velox-btn active" data-aspect="original">Original</button>
+                  <button class="velox-btn" data-aspect="ultrawide">21:9 Ultrawide</button>
+                  <button class="velox-btn" data-aspect="crop169">16:9 Fill</button>
+                  <button class="velox-btn" data-aspect="stretch">Stretch</button>
+                  <button class="velox-btn" data-aspect="custom">Custom Zoom</button>
+                  <button class="velox-btn" id="velox-cycle-aspect-btn">Cycle (Z)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Custom Pan & Zoom <span class="velox-badge-mini">PRO</span></div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-slider-row">
+                  <div class="velox-slider-header">
+                    <span>Zoom Level</span>
+                    <span class="velox-slider-value" id="velox-zoom-val">100%</span>
+                  </div>
+                  <input type="range" class="velox-slider" id="velox-zoom-slider" min="100" max="175" value="100">
+                </div>
+                <div class="velox-slider-row">
+                  <div class="velox-slider-header">
+                    <span>Vertical Pan Offset</span>
+                    <span class="velox-slider-value" id="velox-pan-val">0%</span>
+                  </div>
+                  <input type="range" class="velox-slider" id="velox-pan-slider" min="-30" max="30" value="0">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBTITLES TAB -->
+          <div class="velox-tab-pane" id="tab-subtitles">
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Position Presets</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-btn-grid cols-2">
+                  <button class="velox-btn active" data-preset="bottom-center">Bottom Center</button>
+                  <button class="velox-btn" data-preset="top-center">Top Center</button>
+                  <button class="velox-btn" data-preset="bottom-black-bar">Bottom Black Bar</button>
+                  <button class="velox-btn" data-preset="top-black-bar">Top Black Bar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">OLED Dimmer & Styling <span class="velox-badge-mini">PRO</span></div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-slider-row">
+                  <div class="velox-slider-header">
+                    <span>Subtitle Dimmer (OLED/HDR)</span>
+                    <span class="velox-slider-value" id="velox-sub-bright-val">100%</span>
+                  </div>
+                  <input type="range" class="velox-slider" id="velox-sub-bright-slider" min="20" max="100" value="100">
+                </div>
+                <div class="velox-slider-row">
+                  <div class="velox-slider-header">
+                    <span>Font Size</span>
+                    <span class="velox-slider-value" id="velox-sub-size-val">24px</span>
+                  </div>
+                  <input type="range" class="velox-slider" id="velox-sub-size-slider" min="14" max="52" value="24">
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">External Subtitles (.SRT / .VTT) <span class="velox-badge-mini">PRO</span></div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-file-drop" id="velox-sub-dropzone">
+                  Drag & Drop .srt or .vtt file here, or <u>Click to Browse</u>
+                  <input type="file" id="velox-sub-file-input" accept=".srt,.vtt" style="display:none;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIDEO & FX TAB -->
+          <div class="velox-tab-pane" id="tab-video">
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Super-Resolution Sharpening</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-btn-grid cols-2">
+                  <button class="velox-btn" id="velox-sharpen-btn">✨ Sharpen: OFF</button>
+                  <button class="velox-btn" id="velox-reset-fx-btn">Reset FX</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Audio Dialogue Booster <span class="velox-badge-mini">PRO</span></div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-slider-row">
+                  <div class="velox-slider-header">
+                    <span>Volume Gain</span>
+                    <span class="velox-slider-value" id="velox-audio-val">100%</span>
+                  </div>
+                  <input type="range" class="velox-slider" id="velox-audio-slider" min="100" max="600" value="100" step="25">
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">HUD Accent Themes <span class="velox-badge-mini">PRO</span></div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-theme-palette">
+                  <div class="velox-theme-dot active" style="background:#00e5ff;" data-theme="cyan" title="Electric Cyan"></div>
+                  <div class="velox-theme-dot" style="background:#a855f7;" data-theme="purple" title="Neon Purple"></div>
+                  <div class="velox-theme-dot" style="background:#f59e0b;" data-theme="gold" title="Sunset Gold"></div>
+                  <div class="velox-theme-dot" style="background:#10b981;" data-theme="green" title="Matrix Emerald"></div>
+                  <div class="velox-theme-dot" style="background:#f43f5e;" data-theme="rose" title="Cyberpunk Rose"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AD-WARP TAB -->
+          <div class="velox-tab-pane" id="tab-adwarp">
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">16x Hyper-Warp Ad Engine</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-toggle-row">
+                  <span>Accelerate Ads to 16x</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-adwarp-chk" checked>
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+                <div class="velox-toggle-row">
+                  <span>Silent Auto-Mute</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-automute-chk" checked>
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SPECIALS TAB (YouTube & Binge Mode) -->
+          <div class="velox-tab-pane" id="tab-specials">
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">Streaming Binge Mode</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-toggle-row">
+                  <span>Auto-Skip Intro</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-skip-intro-chk" checked>
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+                <div class="velox-toggle-row">
+                  <span>Auto-Skip Recap</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-skip-recap-chk" checked>
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+                <div class="velox-toggle-row">
+                  <span>Auto-Play Next Episode</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-next-ep-chk">
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="velox-group">
+              <div class="velox-group-header">
+                <div class="velox-group-title">YouTube Enhancer Specials</div>
+                <span class="velox-group-chevron">▼</span>
+              </div>
+              <div class="velox-group-body">
+                <div class="velox-toggle-row">
+                  <span>Auto Theater Mode</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-yt-theater-chk">
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+                <div class="velox-toggle-row">
+                  <span>Hide YouTube Shorts</span>
+                  <label class="velox-switch">
+                    <input type="checkbox" id="velox-yt-shorts-chk">
+                    <span class="velox-switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div class="velox-toast" id="velox-toast">
+        <span id="velox-toast-msg">VeloxCine Active</span>
+      </div>
+    `;
+
+    document.documentElement.appendChild(root);
+    setupHUDInteractions();
+    setupDraggableAnchor();
+  }
+
+  /* ==========================================================================
+     9. INTERACTION CONTROLLER & THEMES
+     ========================================================================== */
+  function setupHUDInteractions() {
+    const trigger = document.getElementById('velox-trigger-pill');
+    const panel = document.getElementById('velox-main-panel');
+    const closeBtn = document.getElementById('velox-close-btn');
+
+    function toggleHUD() {
+      state.hudVisible = !state.hudVisible;
+      panel.classList.toggle('velox-hidden', !state.hudVisible);
+    }
+
+    trigger.addEventListener('click', toggleHUD);
+    closeBtn.addEventListener('click', toggleHUD);
+
+    // Mini Nudge Buttons
+    document.getElementById('nudge-aspect').addEventListener('click', cycleAspectRatio);
+    document.getElementById('nudge-dimmer').addEventListener('click', toggleDimmer);
+    document.getElementById('nudge-open').addEventListener('click', toggleHUD);
+
+    // Accordion Headers
+    panel.querySelectorAll('.velox-group-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const group = hdr.closest('.velox-group');
+        group.classList.toggle('collapsed');
+      });
+    });
+
+    // Tab Switching
+    const tabs = panel.querySelectorAll('.velox-tab');
+    const panes = panel.querySelectorAll('.velox-tab-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const target = document.getElementById(tab.getAttribute('data-tab'));
+        if (target) target.classList.add('active');
+      });
+    });
+
+    // Top Platform Switcher Buttons
+    panel.querySelectorAll('.velox-p-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        panel.querySelectorAll('.velox-p-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.viewingPlatform = btn.getAttribute('data-p');
+        showToast(`Viewing: ${btn.textContent.trim()} Profile`);
+      });
+    });
+
+    // Theme Picker
+    panel.querySelectorAll('.velox-theme-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        if (!VeloxLicense.isPremium()) {
+          showToast('🔒 Custom Themes require Lifetime Premium');
+          return;
+        }
+        panel.querySelectorAll('.velox-theme-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        state.theme = dot.getAttribute('data-theme');
+        document.getElementById('veloxcine-hud-root').setAttribute('data-velox-theme', state.theme);
+        showToast(`Theme: ${dot.getAttribute('title')}`);
+      });
+    });
+
+    // Aspect buttons
+    panel.querySelectorAll('[data-aspect]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-aspect');
+        if ((mode === 'ultrawide' || mode === 'custom') && !VeloxLicense.isPremium()) {
+          showToast('🔒 21:9 Ultrawide & Custom Zoom require Lifetime Premium');
+          return;
+        }
+        panel.querySelectorAll('[data-aspect]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.aspect.mode = mode;
+        applyAspectTransform();
+        showToast(`Aspect: ${mode.toUpperCase()}`);
+      });
+    });
+
+    document.getElementById('velox-cycle-aspect-btn').addEventListener('click', cycleAspectRatio);
+
+    // Zoom & Pan
+    const zoomSlider = document.getElementById('velox-zoom-slider');
+    const zoomVal = document.getElementById('velox-zoom-val');
+    zoomSlider.addEventListener('input', (e) => {
+      if (!VeloxLicense.isPremium()) {
+        showToast('🔒 Custom Zoom requires Lifetime Premium');
+        return;
+      }
+      state.aspect.customZoom = parseInt(e.target.value, 10);
+      zoomVal.textContent = `${state.aspect.customZoom}%`;
+      state.aspect.mode = 'custom';
+      applyAspectTransform();
+    });
+
+    const panSlider = document.getElementById('velox-pan-slider');
+    const panVal = document.getElementById('velox-pan-val');
+    panSlider.addEventListener('input', (e) => {
+      state.aspect.panY = parseInt(e.target.value, 10);
+      panVal.textContent = `${state.aspect.panY}%`;
+      state.aspect.mode = 'custom';
+      applyAspectTransform();
+    });
+
+    // Subtitle Dimmer
+    const brightSlider = document.getElementById('velox-sub-bright-slider');
+    const brightVal = document.getElementById('velox-sub-bright-val');
+    brightSlider.addEventListener('input', (e) => {
+      if (!VeloxLicense.isPremium()) {
+        showToast('🔒 Subtitle Dimmer requires Lifetime Premium');
+        return;
+      }
+      state.subtitles.brightness = parseInt(e.target.value, 10);
+      brightVal.textContent = `${state.subtitles.brightness}%`;
+      injectSubtitleStyles();
+    });
+
+    // Font size
+    const sizeSlider = document.getElementById('velox-sub-size-slider');
+    const sizeVal = document.getElementById('velox-sub-size-val');
+    sizeSlider.addEventListener('input', (e) => {
+      state.subtitles.fontSize = parseInt(e.target.value, 10);
+      sizeVal.textContent = `${state.subtitles.fontSize}px`;
+      injectSubtitleStyles();
+    });
+
+    // Presets
+    panel.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        panel.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = btn.getAttribute('data-preset');
+        if (p === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 12; }
+        else if (p === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
+        else if (p === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 96; }
+        else if (p === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 4; }
+        injectSubtitleStyles();
+        showToast(`Subtitles: ${p.replace('-', ' ').toUpperCase()}`);
+      });
+    });
+
+    // File drop
+    const dropzone = document.getElementById('velox-sub-dropzone');
+    const fileInput = document.getElementById('velox-sub-file-input');
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) loadExternalSubtitles(e.target.files[0]);
+    });
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) loadExternalSubtitles(e.dataTransfer.files[0]);
+    });
+
+    // Sharpen & Reset
+    const sharpenBtn = document.getElementById('velox-sharpen-btn');
+    sharpenBtn.addEventListener('click', () => {
+      if (!VeloxLicense.isPremium()) {
+        showToast('🔒 Super-Resolution Sharpening requires Lifetime Premium');
+        return;
+      }
+      state.video.sharpen = !state.video.sharpen;
+      sharpenBtn.classList.toggle('active', state.video.sharpen);
+      sharpenBtn.textContent = state.video.sharpen ? '✨ Sharpen: ON' : '✨ Sharpen: OFF';
+      applyVideoEnhancements();
+    });
+
+    document.getElementById('velox-reset-fx-btn').addEventListener('click', () => {
+      state.video.sharpen = false;
+      state.video.brightness = 100;
+      state.video.contrast = 100;
+      sharpenBtn.classList.remove('active');
+      sharpenBtn.textContent = '✨ Sharpen: OFF';
+      applyVideoEnhancements();
+      showToast('Video FX Reset');
+    });
+
+    // Audio Booster
+    const audioSlider = document.getElementById('velox-audio-slider');
+    const audioVal = document.getElementById('velox-audio-val');
+    audioSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (val > 100 && !VeloxLicense.isPremium()) {
+        showToast('🔒 600% Audio Booster requires Lifetime Premium');
+        audioSlider.value = 100;
+        return;
+      }
+      state.video.audioBoost = val;
+      audioVal.textContent = `${val}%`;
+      setAudioGain(val);
+    });
+
+    // Ad & Binge Switches
+    document.getElementById('velox-adwarp-chk').addEventListener('change', (e) => {
+      state.adWarp.enabled = e.target.checked;
+    });
+    document.getElementById('velox-automute-chk').addEventListener('change', (e) => {
+      state.adWarp.autoMute = e.target.checked;
+    });
+    document.getElementById('velox-skip-intro-chk').addEventListener('change', (e) => {
+      state.binge.autoSkipIntro = e.target.checked;
+    });
+    document.getElementById('velox-skip-recap-chk').addEventListener('change', (e) => {
+      state.binge.autoSkipRecap = e.target.checked;
+    });
+    document.getElementById('velox-next-ep-chk').addEventListener('change', (e) => {
+      state.binge.autoNextEpisode = e.target.checked;
+    });
+
+    // YouTube Specials
+    document.getElementById('velox-yt-theater-chk').addEventListener('change', (e) => {
+      state.youtube.autoTheater = e.target.checked;
+      applyYouTubeSpecials();
+    });
+    document.getElementById('velox-yt-shorts-chk').addEventListener('change', (e) => {
+      state.youtube.hideShorts = e.target.checked;
+      applyYouTubeSpecials();
+    });
+
+    // License update listener
+    VeloxLicense.onLicenseChanged((lic) => {
+      const badge = document.getElementById('velox-hud-badge');
+      if (badge) {
+        badge.textContent = lic.isPremium ? 'PREMIUM' : 'FREE';
+        badge.className = `velox-trigger-badge ${lic.isPremium ? 'velox-badge-premium' : 'velox-badge-free'}`;
+      }
+    });
+  }
+
+  function setupDraggableAnchor() {
+    const anchor = document.getElementById('veloxcine-subtitle-anchor');
+    if (!anchor) return;
+
+    let isDragging = false;
+    anchor.addEventListener('mousedown', (e) => {
+      if (!VeloxLicense.isPremium()) {
+        showToast('🔒 Drag-to-Position Subtitles requires Lifetime Premium');
+        return;
+      }
+      isDragging = true;
+      anchor.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const pctX = Math.max(5, Math.min(95, (e.clientX / window.innerWidth) * 100));
+      const pctY = Math.max(5, Math.min(98, (e.clientY / window.innerHeight) * 100));
+      state.subtitles.posX = Math.round(pctX);
+      state.subtitles.posY = Math.round(pctY);
+      injectSubtitleStyles();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        anchor.classList.remove('dragging');
+        showToast(`Subtitle Position Saved (${state.subtitles.posX}%, ${state.subtitles.posY}%)`);
+      }
+    });
+  }
+
+  function updateHUDControls() {
+    const panel = document.getElementById('velox-main-panel');
+    if (!panel) return;
+    panel.querySelectorAll('[data-aspect]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-aspect') === state.aspect.mode);
+    });
+  }
+
+  /* ==========================================================================
+     10. KEYBOARD SHORTCUTS
+     ========================================================================== */
+  window.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+    if (e.key === 'h' || e.key === 'H') {
+      const panel = document.getElementById('velox-main-panel');
+      if (panel) {
+        state.hudVisible = !state.hudVisible;
+        panel.classList.toggle('velox-hidden', !state.hudVisible);
+      }
+    } else if (e.key === 'z' || e.key === 'Z') {
+      cycleAspectRatio();
+    } else if (e.key === 'd' || e.key === 'D') {
+      toggleDimmer();
+    }
+  });
+
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === 'PING') {
+      sendResponse({ status: 'OK', platform: state.detectedPlatform, videoBound: Boolean(state.activeVideo) });
+    } else if (msg.action === 'CYCLE_ASPECT') {
+      cycleAspectRatio();
+      sendResponse({ mode: state.aspect.mode });
+    } else if (msg.action === 'TOGGLE_HUD') {
+      const panel = document.getElementById('velox-main-panel');
+      if (panel) {
+        state.hudVisible = !state.hudVisible;
+        panel.classList.toggle('velox-hidden', !state.hudVisible);
+      }
+      sendResponse({ visible: state.hudVisible });
+    }
+    return true;
+  });
+
+  function showToast(text) {
+    const toast = document.getElementById('velox-toast');
+    const msg = document.getElementById('velox-toast-msg');
+    if (!toast || !msg) return;
+    msg.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2800);
+  }
+
+  function init() {
+    createHUD();
+    injectSubtitleStyles();
+    const v = findPrimaryVideo();
+    if (v) bindVideo(v);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
