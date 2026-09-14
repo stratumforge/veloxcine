@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusDot = document.getElementById('status-dot');
   const statusText = document.getElementById('status-text');
 
-  const btnToggleHud = document.getElementById('btn-toggle-hud');
+  const btnToggleDimmer = document.getElementById('btn-toggle-dimmer');
   const btnCycleAspect = document.getElementById('btn-cycle-aspect');
   const btnPlayground = document.getElementById('btn-playground');
 
@@ -105,12 +105,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // 5. Trigger Buttons
-  btnToggleHud.addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.id) {
-      chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_HUD' }).catch(() => {});
-    }
-  });
+  if (btnToggleDimmer) {
+    btnToggleDimmer.addEventListener('click', async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_DIMMER' }).catch(() => {});
+      }
+    });
+  }
 
   btnCycleAspect.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

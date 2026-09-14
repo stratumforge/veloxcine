@@ -657,3 +657,14 @@ input:checked + .velox-switch-slider:before {
   color: #fff;
   background: rgba(0, 229, 255, 0.08);
 }
+
+/* In-Page HUD Controls Explicitly Removed */
+#velox-trigger-pill,
+#velox-nudge-pill,
+#velox-main-panel,
+#veloxcine-subtitle-anchor,
+.velox-floating-trigger,
+.velox-nudge-widget,
+.velox-panel {
+  display: none !important;
+}
