@@ -1,6 +1,5 @@
 /**
- * VeloxCine™ Popup Logic
- * Author: StratumForge Labs™
+ * VeloxCine™ Popup Logic (StratumForge Labs™)
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -24,11 +23,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCloseModal = document.getElementById('btn-close-modal');
   const btnCheckout = document.getElementById('btn-checkout');
 
-  // Platform tabs & settings
   const ptabs = document.querySelectorAll('.vc-ptab');
   const selAspect = document.getElementById('sel-aspect');
   const chkAdwarp = document.getElementById('chk-adwarp');
-  const chkAutomute = document.getElementById('chk-automute');
+  const chkBinge = document.getElementById('chk-binge');
+  const chkYtTheater = document.getElementById('chk-yt-theater');
+  const chkYtShorts = document.getElementById('chk-yt-shorts');
   const selDimmer = document.getElementById('sel-dimmer');
 
   let currentPlatform = 'global';
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1. Sync License State
   async function updateLicenseUI() {
     const licState = await VeloxLicense.getState();
-    emailElem.textContent = licState.userEmail || 'guest@veloxcine.app';
+    emailElem.textContent = licState.userEmail || 'forgestratum@gmail.com';
 
     if (licState.isPremium) {
       tierBadge.textContent = 'LIFETIME PRO';
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     statusText.textContent = 'Ready for playback';
   }
 
-  // 5. HUD & Aspect Trigger Buttons
+  // 5. Trigger Buttons
   btnToggleHud.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.id) {
@@ -119,23 +119,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 6. Launch Playground
   btnPlayground.addEventListener('click', () => {
     const playgroundUrl = chrome.runtime.getURL('test-playground/index.html');
     chrome.tabs.create({ url: playgroundUrl });
   });
 
-  // 7. Upgrade Modal
   btnUpgrade.addEventListener('click', () => upgradeModal.style.display = 'flex');
   btnCloseModal.addEventListener('click', () => upgradeModal.style.display = 'none');
   btnCheckout.addEventListener('click', async () => {
-    // Mock checkout success
     await VeloxLicense.setDevTier(true);
     await updateLicenseUI();
     upgradeModal.style.display = 'none';
   });
 
-  // 8. Platform Profile Tab switching
+  // Platform Profile Switching
   ptabs.forEach(tab => {
     tab.addEventListener('click', async () => {
       ptabs.forEach(t => t.classList.remove('active'));
@@ -152,7 +149,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (prof.defaultAspect || prof.customAspect) selAspect.value = prof.defaultAspect || prof.customAspect;
     if (prof.adWarpEnabled !== undefined) chkAdwarp.checked = prof.adWarpEnabled;
-    if (prof.autoMute !== undefined) chkAutomute.checked = prof.autoMute;
+    if (prof.bingeEnabled !== undefined) chkBinge.checked = prof.bingeEnabled;
+    if (prof.ytTheater !== undefined) chkYtTheater.checked = prof.ytTheater;
+    if (prof.ytShorts !== undefined) chkYtShorts.checked = prof.ytShorts;
     if (prof.brightness !== undefined) selDimmer.value = String(prof.brightness);
   }
 
@@ -164,7 +163,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       defaultAspect: selAspect.value,
       customAspect: selAspect.value,
       adWarpEnabled: chkAdwarp.checked,
-      autoMute: chkAutomute.checked,
+      bingeEnabled: chkBinge.checked,
+      ytTheater: chkYtTheater.checked,
+      ytShorts: chkYtShorts.checked,
       brightness: parseInt(selDimmer.value, 10)
     };
 
@@ -180,9 +181,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   selAspect.addEventListener('change', saveCurrentPlatformSettings);
   chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
-  chkAutomute.addEventListener('change', saveCurrentPlatformSettings);
+  chkBinge.addEventListener('change', saveCurrentPlatformSettings);
+  chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
+  chkYtShorts.addEventListener('change', saveCurrentPlatformSettings);
   selDimmer.addEventListener('change', saveCurrentPlatformSettings);
 
-  // Load initial settings
   await loadPlatformSettings('global');
 });
