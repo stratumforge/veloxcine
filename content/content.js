@@ -772,14 +772,16 @@
     let isDragging = false;
 
     function onDragStart(e) {
-      if (!state.subtitles.enabled) return;
-
       const isSubTarget = e.target.closest('.caption-window') ||
+                          e.target.closest('.ytp-caption-window-bottom') ||
+                          e.target.closest('.ytp-caption-window-rollup') ||
                           e.target.closest('.ytp-caption-segment') ||
-                          e.target.closest('.player-timedtext');
+                          e.target.closest('.player-timedtext') ||
+                          e.target.closest('.player-timedtext-text-container');
 
       if (!isSubTarget) return;
 
+      state.subtitles.enabled = true;
       isDragging = true;
       e.preventDefault();
     }
@@ -895,35 +897,12 @@
     state.subtitles.posY = 88;
     state.subtitles.brightness = 100;
 
-    // Firmly force subtitle position back to default bottom center overriding any previous drags
-    const resetCss = `
-      .caption-window,
-      .ytp-caption-window-bottom,
-      .ytp-caption-window-rollup,
-      .player-timedtext,
-      .player-timedtext-text-container {
-        position: absolute !important;
-        left: 50% !important;
-        top: auto !important;
-        bottom: 8% !important;
-        right: auto !important;
-        margin: 0 !important;
-        transform: translateX(-50%) !important;
-        width: auto !important;
-        max-width: 90% !important;
-        text-align: center !important;
-        opacity: 1 !important;
-        filter: none !important;
-        cursor: grab !important;
-      }
-    `;
-
-    if (!subtitleStyleTag) {
-      subtitleStyleTag = document.createElement('style');
-      subtitleStyleTag.id = 'veloxcine-dynamic-subtitles';
-      (document.head || document.documentElement).appendChild(subtitleStyleTag);
-    }
-    subtitleStyleTag.textContent = resetCss;
+    state.subtitles.enabled = true;
+    state.subtitles.preset = 'bottom-center';
+    state.subtitles.posX = 50;
+    state.subtitles.posY = 88;
+    state.subtitles.brightness = 100;
+    injectSubtitleStyles();
 
     document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup, .player-timedtext, .player-timedtext-text-container').forEach(el => {
       el.style.transform = '';

@@ -6,6 +6,8 @@
 (function () {
   'use strict';
 
+  let wasAdActive = false;
+
   function triggerFullClick(el) {
     if (!el) return;
     try {
@@ -76,6 +78,7 @@
       );
 
       if (isAd) {
+        wasAdActive = true;
         if (video) {
           // Keep muted during ad
           if (!video.muted) video.muted = true;
@@ -137,16 +140,19 @@
           }
         }
       } else {
-        // Main video is playing: ensure normal speed & restore audio
-        if (video) {
-          if (video.playbackRate && video.playbackRate > 2.0) {
-            video.playbackRate = 1.0;
-          }
-          if (video.muted) {
-            video.muted = false;
-          }
-          if (video.paused && !video.ended) {
-            try { video.play(); } catch(e) {}
+        // Main video is playing: ONLY run once upon transition from ad -> main video
+        if (wasAdActive) {
+          wasAdActive = false;
+          if (video) {
+            if (video.playbackRate && video.playbackRate > 2.0) {
+              video.playbackRate = 1.0;
+            }
+            if (video.muted) {
+              video.muted = false;
+            }
+            if (video.paused && !video.ended) {
+              try { video.play(); } catch(e) {}
+            }
           }
         }
       }
