@@ -24,7 +24,7 @@ VeloxCine™ is an all-in-one browser extension (Manifest V3) for streaming plat
 2. Enable **Developer mode** using the toggle in the top-right corner.
 3. Click the **Load unpacked** button.
 4. Select the project directory:
-   `C:\Users\ssuja\.gemini\antigravity-ide\scratch\veloxcine-extension`
+   `F:\AI projects\VeloxCine`
 5. The **VeloxCine™** icon will appear in your Chrome toolbar!
 
 ---
@@ -54,7 +54,7 @@ VeloxCine™ is an all-in-one browser extension (Manifest V3) for streaming plat
 ## 📁 Repository Structure
 
 ```
-veloxcine-extension/
+veloxcine/
 ├── manifest.json                  # Manifest V3 configuration
 ├── CHROMEWEBSTORE.md              # Chrome Web Store listing & review justifications
 ├── README.md                      # Setup and usage guide
@@ -69,7 +69,7 @@ veloxcine-extension/
 │   ├── popup.css                  # Popup dark-mode styles
 │   └── popup.js                   # Popup controller & platform profile sync
 ├── test-playground/
-│   ├── index.html                 # Interactive simulation testing sandbox
+│   ├── index.html                 # Interactive simulation sandbox
 │   ├── playground.js              # Real-time diagnostics & ad simulator
 │   └── sample-cues.vtt            # WebVTT test subtitle track
 └── docs/

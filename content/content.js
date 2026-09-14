@@ -561,7 +561,7 @@
           </div>
         </div>
 
-        <!-- Top Platform Switcher Bar (Inspired by FrameTune) -->
+        <!-- Top Platform Switcher Bar -->
         <div class="velox-platform-bar">
           <button class="velox-p-btn active" data-p="all"><span class="velox-p-icon">🌐</span> All</button>
           <button class="velox-p-btn" data-p="netflix"><span class="velox-p-icon" style="color:#e50914;">N</span> Netflix</button>

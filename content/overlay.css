@@ -194,7 +194,7 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Top Platform Switcher Bar (Inspired by FrameTune) */
+/* Top Platform Switcher Bar */
 .velox-platform-bar {
   display: flex;
   align-items: center;
@@ -573,7 +573,7 @@ input:checked + .velox-switch-slider:before {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.9);
 }
 
-/* On-Screen Quick Nudge Buttons (Inspired by FrameTune) */
+/* On-Screen Quick Nudge Buttons */
 .velox-nudge-widget {
   position: absolute;
   bottom: 30px;
