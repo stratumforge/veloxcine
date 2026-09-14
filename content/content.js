@@ -392,8 +392,11 @@
         }
       }
 
-      // If the ad video pauses, immediately resume it so it does not freeze
-      if (video.paused) {
+      // If the ad video pauses or reaches end, keep it playing so countdown never freezes
+      if (video.paused || video.ended) {
+        if (video.duration && video.currentTime >= video.duration - 0.2) {
+          video.currentTime = 0.1;
+        }
         try { video.play(); } catch(e) {}
       }
 
@@ -426,8 +429,9 @@
 
     // If Aspect Ratio Override is NOT enabled, reset to natural original
     if (!state.aspect.enabled || state.aspect.mode === 'original') {
-      video.style.transform = 'none';
-      video.style.objectFit = 'contain';
+      video.style.transform = '';
+      video.style.objectFit = '';
+      video.style.transition = '';
       return;
     }
 
@@ -518,9 +522,20 @@
           cursor: grab !important;
         }
       `;
+    } else {
+      // Revert inline styles on caption windows when disabled
+      document.querySelectorAll('.caption-window, .player-timedtext-text-container').forEach(el => {
+        if (el.style.left && el.style.left.includes('%')) el.style.left = '';
+        if (el.style.top && el.style.top.includes('%')) el.style.top = '';
+        if (el.style.transform && el.style.transform.includes('translate')) el.style.transform = '';
+      });
     }
 
-    subtitleStyleTag.textContent = css;
+    if (!enabled && brightness === 100) {
+      subtitleStyleTag.textContent = '';
+    } else {
+      subtitleStyleTag.textContent = css;
+    }
   }
 
   function toggleDimmer() {
@@ -753,14 +768,14 @@
     let isDragging = false;
 
     function onDragStart(e) {
+      if (!state.subtitles.enabled) return;
+
       const isSubTarget = e.target.closest('.caption-window') ||
                           e.target.closest('.ytp-caption-segment') ||
-                          e.target.closest('.ytp-caption-window-container') ||
                           e.target.closest('.player-timedtext');
 
       if (!isSubTarget) return;
 
-      state.subtitles.enabled = true;
       isDragging = true;
       e.preventDefault();
     }
@@ -839,8 +854,49 @@
     }
   }
 
+  function resetAllSettingsToDefaults() {
+    state.aspect.enabled = false;
+    state.aspect.mode = 'original';
+    if (state.activeVideo) {
+      state.activeVideo.style.transform = '';
+      state.activeVideo.style.objectFit = '';
+      state.activeVideo.style.transition = '';
+    }
+
+    state.subtitles.enabled = false;
+    state.subtitles.preset = 'bottom-center';
+    state.subtitles.posX = 50;
+    state.subtitles.posY = 88;
+    state.subtitles.brightness = 100;
+
+    if (subtitleStyleTag) {
+      subtitleStyleTag.textContent = '';
+    }
+    document.querySelectorAll('.caption-window, .player-timedtext, .player-timedtext-text-container').forEach(el => {
+      el.style.transform = '';
+      el.style.left = '';
+      el.style.top = '';
+      el.style.bottom = '';
+      el.style.right = '';
+      el.style.position = '';
+      el.style.margin = '';
+    });
+    window.dispatchEvent(new Event('resize'));
+
+    state.adWarp.enabled = true;
+    state.binge.autoSkipIntro = true;
+    state.binge.autoSkipRecap = true;
+    state.youtube.autoTheater = false;
+    state.youtube.hideShorts = false;
+
+    showToast('↺ Settings Reset to Defaults');
+  }
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'APPLY_SETTINGS_NOW') {
+    if (msg.action === 'RESET_SETTINGS') {
+      resetAllSettingsToDefaults();
+      sendResponse({ status: 'OK' });
+    } else if (msg.action === 'APPLY_SETTINGS_NOW') {
       applySettingsObject(msg.settings);
       sendResponse({ status: 'OK' });
     } else if (msg.action === 'PING') {

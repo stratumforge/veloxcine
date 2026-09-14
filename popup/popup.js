@@ -296,7 +296,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 8. Reset All Settings Handler (Placed inside DOMContentLoaded)
   const btnReset = document.getElementById('btn-reset-settings');
   if (btnReset) {
-    btnReset.addEventListener('click', async () => {
+    btnReset.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      // 1. Reset all visual controls in popup UI
       if (chkAspect) chkAspect.checked = false;
       if (rowAspectSelect) rowAspectSelect.style.display = 'none';
       if (selAspect) selAspect.value = 'original';
@@ -311,35 +314,41 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (chkYtShorts) chkYtShorts.checked = false;
       if (selDimmer) selDimmer.value = '100';
 
+      const defaultState = {
+        aspectEnabled: false,
+        defaultAspect: 'original',
+        customAspect: 'original',
+        subEnabled: false,
+        subPosition: 'bottom-center',
+        adWarpEnabled: true,
+        bingeEnabled: true,
+        ytTheater: false,
+        ytShorts: false,
+        brightness: 100
+      };
+
       const defaultSettings = {
-        global: {
-          aspectEnabled: false,
-          defaultAspect: 'original',
-          subEnabled: false,
-          subPosition: 'bottom-center',
-          adWarpEnabled: true,
-          bingeEnabled: true,
-          ytTheater: false,
-          ytShorts: false,
-          brightness: 100
-        },
+        global: { ...defaultState },
         profiles: {
-          youtube: {
-            aspectEnabled: false,
-            defaultAspect: 'original',
-            subEnabled: false,
-            subPosition: 'bottom-center',
-            adWarpEnabled: true,
-            bingeEnabled: true,
-            ytTheater: false,
-            ytShorts: false,
-            brightness: 100
-          }
+          youtube: { ...defaultState },
+          netflix: { ...defaultState },
+          prime: { ...defaultState },
+          hotstar: { ...defaultState }
         }
       };
 
       await chrome.storage.local.set({ veloxcine_settings: defaultSettings });
-      await notifyActiveTab(defaultSettings.global);
+
+      // Notify active tab with RESET_SETTINGS action
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'RESET_SETTINGS',
+            settings: defaultState
+          }).catch(() => {});
+        }
+      } catch (err) {}
 
       const origText = btnReset.textContent;
       btnReset.textContent = '✓ Settings Reset to Defaults';

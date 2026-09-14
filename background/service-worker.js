@@ -1,11 +1,11 @@
 /**
- * VeloxCine™ Background Service Worker (Manifest V3)
+ * VeloxCine™™ Background Service Worker (Manifest V3)
  * Author: StratumForge Labs™
  */
 
 // Initialize storage defaults upon install
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('[VeloxCine] Extension installed/updated:', details.reason);
+  console.log('[VeloxCine™] Extension installed/updated:', details.reason);
 
   const defaults = {
     veloxcine_settings: {
