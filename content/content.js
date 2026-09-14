@@ -253,6 +253,8 @@
     } catch (e) {}
   }
 
+  let lastAdEndTime = 0;
+
   function detectAdAndBingeState() {
     const video = state.activeVideo || findPrimaryVideo();
     if (!video || document.hidden) return;
@@ -426,13 +428,30 @@
       allVideos.forEach(v => {
         if (!state.adWarp.isAdActive) {
           state.adWarp.isAdActive = true;
-          state.adWarp.savedSpeed = v.playbackRate || 1;
-          state.adWarp.savedVolume = v.volume;
+          state.adWarp.savedSpeed = (v.playbackRate && v.playbackRate > 0) ? v.playbackRate : 1;
+          state.adWarp.savedVolume = (v.volume && v.volume > 0.1) ? v.volume : 1.0;
         }
 
         // Auto-Mute during ad
-        if (state.adWarp.autoMute && !v.muted) {
-          v.muted = true;
+        if (state.adWarp.autoMute) {
+          if (state.detectedPlatform === 'prime') {
+            // On Prime Video, volume = 0 cleanly silences the ad without causing Amazon React player to lock into muted state
+            v.volume = 0;
+            try {
+              const protoVol = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume')?.set;
+              if (protoVol) protoVol.call(v, 0);
+            } catch (e) {}
+          } else {
+            // YouTube / Generic platforms
+            if (!v.muted) {
+              v.muted = true;
+              try {
+                const protoMuted = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted')?.set;
+                if (protoMuted) protoMuted.call(v, true);
+              } catch (e) {}
+              try { v.dispatchEvent(new Event('volumechange', { bubbles: true })); } catch (e) {}
+            }
+          }
         }
 
         // In Lifetime Premium: 16x Hyper-Warp
@@ -456,22 +475,106 @@
       }
 
     } else {
-      // Ad is NOT active. Ensure speed is 1.0x and audio is unmuted
-      if (state.adWarp.isAdActive || allVideos.some(v => v.playbackRate > 2.0)) {
+      // Ad is NOT active.
+      if (state.adWarp.isAdActive) {
         state.adWarp.isAdActive = false;
-        allVideos.forEach(v => {
-          v.playbackRate = 1.0;
-          try {
-            const protoSetter = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate')?.set;
-            if (protoSetter) protoSetter.call(v, 1.0);
-          } catch (e) {}
+        lastAdEndTime = Date.now();
+        showToast('✨ Playback Restored (1.0x)');
+      }
 
+      // During active post-ad transition window (5s) or if video is fast-forwarding
+      const inPostAdWindow = (Date.now() - lastAdEndTime < 5000);
+      const isFast = allVideos.some(v => v.playbackRate > 2.0);
+
+      if (inPostAdWindow || isFast) {
+        const restoreVol = (state.adWarp.savedVolume && state.adWarp.savedVolume > 0.1) ? state.adWarp.savedVolume : 1.0;
+
+        allVideos.forEach(v => {
+          if (v.playbackRate > 2.0 || inPostAdWindow) {
+            v.playbackRate = 1.0;
+            try {
+              const protoSetter = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate')?.set;
+              if (protoSetter) protoSetter.call(v, 1.0);
+            } catch (e) {}
+          }
+
+          // Unmute video stream
           if (v.muted) {
             v.muted = false;
-            if (state.adWarp.savedVolume !== undefined) v.volume = state.adWarp.savedVolume;
+            try {
+              const protoMuted = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted')?.set;
+              if (protoMuted) protoMuted.call(v, false);
+            } catch (e) {}
+            try { v.dispatchEvent(new Event('volumechange', { bubbles: true })); } catch (e) {}
+          }
+
+          // Restore volume level
+          if (v.volume < 0.1 || (v.volume !== restoreVol && inPostAdWindow)) {
+            v.volume = restoreVol;
+            try {
+              const protoVol = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume')?.set;
+              if (protoVol) protoVol.call(v, restoreVol);
+            } catch (e) {}
+            try { v.dispatchEvent(new Event('volumechange', { bubbles: true })); } catch (e) {}
           }
         });
-        showToast('✨ Playback Restored (1.0x)');
+
+        // Platform-specific UI unmute recovery for Prime Video
+        if (state.detectedPlatform === 'prime') {
+          const isStillMuted = allVideos.some(v => v.muted || v.volume < 0.05);
+          if (isStillMuted) {
+            allVideos.forEach(v => {
+              v.muted = false;
+              v.volume = restoreVol;
+              try {
+                const protoM = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted')?.set;
+                if (protoM) protoM.call(v, false);
+                const protoV = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume')?.set;
+                if (protoV) protoV.call(v, restoreVol);
+              } catch (e) {}
+            });
+
+            if (!window._veloxPrimeUnmuteCooldown || Date.now() - window._veloxPrimeUnmuteCooldown > 1200) {
+              window._veloxPrimeUnmuteCooldown = Date.now();
+
+              // 1. Target Prime Video volume/mute button
+              const volButtons = document.querySelectorAll(`
+                button.atvwebplayersdk-volumebar-mute-button,
+                .atvwebplayersdk-volumebar-container button,
+                [data-testid="volume-mute-button"],
+                [data-testid="volume-button"],
+                button[class*="volumebar" i],
+                button[aria-label*="unmute" i],
+                button[aria-label*="mute" i]
+              `);
+
+              for (let i = 0; i < volButtons.length; i++) {
+                const btn = volButtons[i];
+                if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0)) {
+                  try {
+                    simulateFullClick(btn);
+                    if (typeof btn.click === 'function') btn.click();
+                    break;
+                  } catch (e) {}
+                }
+              }
+
+              // 2. Dispatch keyboard 'm' shortcut to Prime Video player container and window
+              try {
+                const keyM = new KeyboardEvent('keydown', {
+                  key: 'm',
+                  code: 'KeyM',
+                  keyCode: 77,
+                  which: 77,
+                  bubbles: true,
+                  cancelable: true
+                });
+                const target = document.querySelector('.atvwebplayersdk-bottompanel-container, .atvwebplayersdk-overlays-container, video') || document.body || window;
+                target.dispatchEvent(keyM);
+              } catch (e) {}
+            }
+          }
+        }
       }
     }
   }
