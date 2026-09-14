@@ -293,3 +293,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+  // 8. Reset All Settings Handler
+  const btnReset = document.getElementById('btn-reset-settings');
+  if (btnReset) {
+    btnReset.addEventListener('click', async () => {
+      if (chkAspect) chkAspect.checked = false;
+      if (rowAspectSelect) rowAspectSelect.style.display = 'none';
+      if (selAspect) selAspect.value = 'original';
+
+      if (chkSubModifier) chkSubModifier.checked = false;
+      if (rowSubSelect) rowSubSelect.style.display = 'none';
+      if (selSubPos) selSubPos.value = 'bottom-center';
+
+      if (chkAdwarp) chkAdwarp.checked = true;
+      if (chkBinge) chkBinge.checked = true;
+      if (chkYtTheater) chkYtTheater.checked = false;
+      if (chkYtShorts) chkYtShorts.checked = false;
+      if (selDimmer) selDimmer.value = '100';
+
+      const defaultSettings = {
+        global: {
+          aspectEnabled: false,
+          defaultAspect: 'original',
+          subEnabled: false,
+          subPosition: 'bottom-center',
+          adWarpEnabled: true,
+          bingeEnabled: true,
+          ytTheater: false,
+          ytShorts: false,
+          brightness: 100
+        },
+        profiles: {}
+      };
+
+      await chrome.storage.local.set({ veloxcine_settings: defaultSettings });
+      await notifyActiveTab(defaultSettings.global);
+
+      const origText = btnReset.textContent;
+      btnReset.textContent = '✓ Settings Reset to Defaults';
+      btnReset.style.color = '#10b981';
+      setTimeout(() => {
+        btnReset.textContent = origText;
+        btnReset.style.color = '';
+      }, 2000);
+    });
+  }

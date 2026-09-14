@@ -310,61 +310,63 @@
       isAd = Boolean(document.querySelector('.ad-showing, .video-ads, [data-ad-active="true"]'));
     }
 
-    // Click ALL YouTube & Platform Skip Ad Buttons Instantly (Active for both Free & Premium)
-    const skipSelectors = [
-      '.ytp-skip-ad-button',
-      '.ytp-ad-skip-button-modern',
-      '.ytp-ad-skip-button',
-      '.ytp-ad-skip-button-container button',
-      '.ytp-ad-skip-button-slot button',
-      '.ytp-ad-skip-button-container',
-      '.ytp-ad-skip-button-slot',
-      'button.ytp-ad-skip-button-modern',
-      'button.ytp-ad-skip-button',
-      'button.ytp-skip-ad-button',
-      'button[id^="skip-button"]',
-      'button[class*="skip-ad"]',
-      'button[class*="skip-button"]',
-      'button.skip-ad',
-      '.videoAdUiSkipButton',
-      '.fuzzyCenter .skip-element'
-    ];
+    // Unconditionally click any skip buttons with priority on actual button elements
+    function clickAnySkipButton() {
+      const skipSelectors = [
+        'button.ytp-ad-skip-button-modern',
+        '.ytp-ad-skip-button-modern',
+        'button.ytp-ad-skip-button',
+        '.ytp-ad-skip-button',
+        '.ytp-ad-skip-button-slot button',
+        '.ytp-ad-skip-button-container button',
+        'button[id^="skip-button"]',
+        'button.ytp-skip-ad-button',
+        '.ytp-skip-ad-button button',
+        'button[class*="skip-ad"]',
+        'button[class*="skip-button"]',
+        'button.skip-ad',
+        '.videoAdUiSkipButton',
+        '.fuzzyCenter .skip-element',
+        '.ytp-ad-skip-button-slot',
+        '.ytp-ad-skip-button-container',
+        '.ytp-skip-ad-button'
+      ];
 
-    let clickedSkip = false;
-    for (let i = 0; i < skipSelectors.length; i++) {
-      const btns = document.querySelectorAll(skipSelectors[i]);
-      for (let j = 0; j < btns.length; j++) {
-        const b = btns[j];
-        if (b && (b.offsetParent !== null || b.offsetWidth > 0 || b.offsetHeight > 0)) {
-          try {
+      for (let i = 0; i < skipSelectors.length; i++) {
+        const btns = document.querySelectorAll(skipSelectors[i]);
+        for (let j = 0; j < btns.length; j++) {
+          const b = btns[j];
+          if (b) {
             simulateFullClick(b);
-            window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
-            clickedSkip = true;
-            showToast('⚡ VeloxCine: Ad Skipped');
-          } catch (e) {}
-          break;
+            if (typeof b.click === 'function') {
+              try { b.click(); } catch(e) {}
+            }
+            const child = b.querySelector('button, [class*="skip"], .ytp-ad-text');
+            if (child) {
+              simulateFullClick(child);
+              if (typeof child.click === 'function') {
+                try { child.click(); } catch(e) {}
+              }
+            }
+          }
         }
       }
-      if (clickedSkip) break;
-    }
 
-    // Additional text search for modern YouTube pill buttons ("Skip >|")
-    if (!clickedSkip && (isAd || state.detectedPlatform === 'youtube')) {
-      const candidateButtons = document.querySelectorAll('.html5-video-player button, .ytp-ad-module button, .ytp-ad-skip-button-slot *');
-      for (let i = 0; i < candidateButtons.length; i++) {
-        const b = candidateButtons[i];
+      // Text search for skip buttons
+      const allBtns = document.querySelectorAll('.html5-video-player button, .video-ads button, .ytp-ad-module button');
+      for (let i = 0; i < allBtns.length; i++) {
+        const b = allBtns[i];
         const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
-        if (txt.includes('skip') && (b.offsetParent !== null || b.offsetWidth > 0)) {
-          try {
-            simulateFullClick(b);
-            window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
-            clickedSkip = true;
-            showToast('⚡ VeloxCine: Ad Skipped');
-          } catch (e) {}
-          break;
+        if (txt.includes('skip')) {
+          simulateFullClick(b);
+          if (typeof b.click === 'function') {
+            try { b.click(); } catch(e) {}
+          }
         }
       }
     }
+
+    clickAnySkipButton();
 
     // When ad is active
     if (isAd) {
@@ -421,7 +423,7 @@
   }
 
   // High-performance ad scanner running every 200ms
-  setInterval(detectAdAndBingeState, 200);
+  setInterval(detectAdAndBingeState, 100);
 
   /* ==========================================================================
      3. ASPECT RATIO & BLACK BAR ELIMINATOR
