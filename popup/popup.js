@@ -187,4 +187,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   selDimmer.addEventListener('change', saveCurrentPlatformSettings);
 
   await loadPlatformSettings('global');
+
+  // Regional Pricing for Popup Modal
+  (function initPopupPricing() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const isIndian = tz.includes('Kolkata') || tz.includes('Calcutta') || tz.includes('India');
+    const priceAmount = document.getElementById('popup-price-amount');
+    const pricePeriod = document.getElementById('popup-price-period');
+    const btnCheckout = document.getElementById('btn-checkout');
+
+    if (priceAmount && pricePeriod) {
+      if (isIndian) {
+        priceAmount.textContent = '₹399';
+        pricePeriod.textContent = 'One-Time Lifetime (UPI & RuPay)';
+        if (btnCheckout) btnCheckout.textContent = '⚡ Unlock with UPI (₹399)';
+      } else {
+        priceAmount.textContent = '$12.99';
+        pricePeriod.textContent = 'One-Time Lifetime (Apple Pay & Cards)';
+        if (btnCheckout) btnCheckout.textContent = 'Unlock Lifetime ($12.99)';
+      }
+    }
+  })();
+
 });
