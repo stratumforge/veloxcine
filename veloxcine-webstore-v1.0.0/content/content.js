@@ -88,21 +88,25 @@
      1. HIGH-PERFORMANCE VIDEO DETECTION & THROTTLED OBSERVER
      ========================================================================== */
   function findPrimaryVideo() {
+    const videos = Array.from(document.querySelectorAll('video'));
+    if (!videos.length) return null;
+
+    // Prioritize actively playing video stream (not paused, actively progressing)
+    const playingVideo = videos.find(v => !v.paused && v.currentTime > 0 && !v.ended);
+    if (playingVideo) return playingVideo;
+
     // Fast path: reuse currently bound video if still connected and valid
     if (state.activeVideo && document.contains(state.activeVideo)) {
       return state.activeVideo;
     }
 
-    // Platform-specific fast selectors (Zero layout reflow)
+    // Platform-specific fast selectors
     if (state.detectedPlatform === 'youtube') {
       const ytVid = document.querySelector('video.html5-main-video') || document.querySelector('ytd-player video') || document.querySelector('video');
       if (ytVid) return ytVid;
     }
 
-    const videos = document.querySelectorAll('video');
-    if (!videos.length) return null;
-
-    // Pick largest playing or visible video without getBoundingClientRect()
+    // Pick largest playing or visible video
     let best = videos[0];
     let maxDimension = 0;
     for (let i = 0; i < videos.length; i++) {
@@ -297,6 +301,62 @@
     // C. Bulletproof Ad Detection Across Platforms
     if (!state.adWarp.enabled) return;
 
+    function isPrimeAdActive() {
+      // 1. Prime Video SDK specific ad classes & indicators
+      const primeAdSelectors = [
+        '.atvwebplayersdk-adtimeindicator-text',
+        '.atvwebplayersdk-ad-timer',
+        '.atvwebplayersdk-ad-time-indicator',
+        '.atvwebplayersdk-ad-label',
+        '.atvwebplayersdk-ad-notice',
+        '.atvwebplayersdk-adbreak',
+        '[class*="atvwebplayersdk-ad"]',
+        '[class*="adtimeindicator"]',
+        '[class*="ad-timer"]',
+        '[class*="ad-time"]',
+        '[class*="adBreak"]',
+        '[class*="adNotice"]',
+        '[class*="adRemaining"]',
+        '[class*="adCount"]',
+        '[class*="adIndicator"]',
+        '[class*="ad-indicator"]',
+        '[data-testid*="ad-timer"]',
+        '[data-testid*="ad-indicator"]',
+        '[data-testid*="ad-badge"]',
+        '[data-testid*="ad-label"]',
+        '[data-testid*="ad-time"]',
+        '[data-testid*="adFeedback"]',
+        '[data-testid="ad-feedback-button"]',
+        '[aria-label*="Ad •" i]',
+        '[aria-label*="Ad 1 of" i]',
+        '[aria-label*="Ad 2 of" i]',
+        '[aria-label*="Advertisement" i]'
+      ];
+
+      for (let i = 0; i < primeAdSelectors.length; i++) {
+        const el = document.querySelector(primeAdSelectors[i]);
+        if (el && (el.offsetParent !== null || el.offsetWidth > 0 || el.offsetHeight > 0)) {
+          return true;
+        }
+      }
+
+      // 2. Text inspection inside player overlay containers
+      const overlays = document.querySelectorAll('.atvwebplayersdk-overlays-container, .rendererContainer, [class*="webPlayerOverlay"], .atvwebplayersdk-bottompanel-container');
+      for (let i = 0; i < overlays.length; i++) {
+        const txt = (overlays[i].innerText || overlays[i].textContent || '').toLowerCase();
+        if (/ad\s*\d+\s*of\s*\d+/i.test(txt) ||
+            /ad\s*•/i.test(txt) ||
+            /ad\s*:\s*\d+/i.test(txt) ||
+            txt.includes('your program will resume') ||
+            txt.includes('program resumes in') ||
+            txt.includes('learn more') ||
+            txt.includes('advertisement')) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     let isAd = false;
     if (state.detectedPlatform === 'youtube') {
       const moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
@@ -306,16 +366,23 @@
     } else if (state.detectedPlatform === 'netflix') {
       isAd = Boolean(document.querySelector('.ad-container, [data-uia="ad-breakpoint"]'));
     } else if (state.detectedPlatform === 'prime') {
-      isAd = Boolean(document.querySelector('.ad-showing, .adMarker, .fuzzyCenter .ad-overlay'));
+      isAd = isPrimeAdActive();
     } else if (state.detectedPlatform === 'hotstar') {
       isAd = Boolean(document.querySelector('.ad-timer, .ad-overlay'));
     } else {
       isAd = Boolean(document.querySelector('.ad-showing, .video-ads, [data-ad-active="true"]'));
     }
 
-    // Unconditionally click any skip buttons with priority on actual button elements
+    // Skip Button Handler Across Platforms
     function clickAnySkipButton() {
       const skipSelectors = [
+        // Prime Video
+        '.atvwebplayersdk-skipelement-button',
+        'button.atvwebplayersdk-skipelement-button',
+        '.atvwebplayersdk-ad-skip-button',
+        '[data-testid="ad-skip-button"]',
+        '[class*="skipElement"]',
+        // YouTube
         'button.ytp-ad-skip-button-modern',
         '.ytp-ad-skip-button-modern',
         'button.ytp-ad-skip-button',
@@ -325,6 +392,7 @@
         'button[id^="skip-button"]',
         'button.ytp-skip-ad-button',
         '.ytp-skip-ad-button button',
+        // General
         'button[class*="skip-ad"]',
         'button[class*="skip-button"]',
         'button.skip-ad',
@@ -339,7 +407,7 @@
         const btns = document.querySelectorAll(skipSelectors[i]);
         for (let j = 0; j < btns.length; j++) {
           const b = btns[j];
-          if (b) {
+          if (b && (b.offsetParent !== null || b.offsetWidth > 0)) {
             simulateFullClick(b);
             if (typeof b.click === 'function') {
               try { b.click(); } catch(e) {}
@@ -355,71 +423,84 @@
         }
       }
 
-      // Text search for skip buttons
-      const allBtns = document.querySelectorAll('.html5-video-player button, .video-ads button, .ytp-ad-module button');
+      // Text search for skip buttons in player containers
+      const allBtns = document.querySelectorAll('.html5-video-player button, .video-ads button, .ytp-ad-module button, .atvwebplayersdk-overlays-container button, .webPlayerUIContainer button');
       for (let i = 0; i < allBtns.length; i++) {
         const b = allBtns[i];
-        const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
-        if (txt.includes('skip')) {
-          simulateFullClick(b);
-          if (typeof b.click === 'function') {
-            try { b.click(); } catch(e) {}
+        if (b && (b.offsetParent !== null || b.offsetWidth > 0)) {
+          const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
+          if (txt.includes('skip')) {
+            simulateFullClick(b);
+            if (typeof b.click === 'function') {
+              try { b.click(); } catch(e) {}
+            }
           }
         }
       }
     }
 
+    const allVideos = Array.from(document.querySelectorAll('video'));
+
     // When ad is active
     if (isAd) {
       clickAnySkipButton();
-      if (!state.adWarp.isAdActive) {
-        state.adWarp.isAdActive = true;
-        state.adWarp.savedSpeed = video.playbackRate || 1;
-        state.adWarp.savedVolume = video.volume;
-      }
-
-      // Auto-Mute during ad
-      if (state.adWarp.autoMute && !video.muted) {
-        video.muted = true;
-      }
 
       const isPrem = typeof VeloxLicense !== 'undefined' ? VeloxLicense.isPremium() : state.isPremium;
 
-      // In Lifetime Premium: 16x Hyper-Warp
-      if (isPrem) {
-        try {
-          video.playbackRate = 16.0;
-        } catch (e) {
-          video.playbackRate = 8.0;
+      allVideos.forEach(v => {
+        if (!state.adWarp.isAdActive) {
+          state.adWarp.isAdActive = true;
+          state.adWarp.savedSpeed = v.playbackRate || 1;
+          state.adWarp.savedVolume = v.volume;
         }
-      }
 
-      // If the ad video pauses or reaches end, keep it playing so countdown never freezes
-      if (video.paused || video.ended) {
-        if (video.duration && video.currentTime >= video.duration - 0.2) {
-          video.currentTime = 0.1;
+        // Auto-Mute during ad
+        if (state.adWarp.autoMute && !v.muted) {
+          v.muted = true;
         }
-        try { video.play(); } catch(e) {}
-      }
 
-      // Dispatch skip signal to MAIN-world YouTube player bridge (calls player.skipAd())
-      window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+        // In Lifetime Premium: 16x Hyper-Warp
+        if (isPrem) {
+          try {
+            v.playbackRate = 16.0;
+          } catch (e) {
+            try { v.playbackRate = 8.0; } catch (err) {}
+          }
+          // Direct prototype setter bypasses custom player overrides
+          try {
+            const protoSetter = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate')?.set;
+            if (protoSetter) protoSetter.call(v, 16.0);
+          } catch (e) {}
+        }
+      });
+
+      // Dispatch skip signal to MAIN-world YouTube player bridge if on YouTube
+      if (state.detectedPlatform === 'youtube') {
+        window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
+      }
 
     } else {
       // Ad is NOT active. Ensure speed is 1.0x and audio is unmuted (never stuck at 16x)
-      if (state.adWarp.isAdActive || (video.playbackRate && video.playbackRate > 2.0)) {
+      if (state.adWarp.isAdActive) {
         state.adWarp.isAdActive = false;
-        video.playbackRate = 1.0;
-        if (state.adWarp.autoMute && video.muted) {
-          video.muted = false;
-          if (state.adWarp.savedVolume !== undefined) video.volume = state.adWarp.savedVolume;
-        }
+        allVideos.forEach(v => {
+          v.playbackRate = 1.0;
+          try {
+            const protoSetter = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate')?.set;
+            if (protoSetter) protoSetter.call(v, 1.0);
+          } catch (e) {}
+
+          if (state.adWarp.autoMute && v.muted) {
+            v.muted = false;
+            if (state.adWarp.savedVolume !== undefined) v.volume = state.adWarp.savedVolume;
+          }
+        });
         showToast('✨ Playback Restored (1.0x)');
       }
     }
   }
 
-  // High-performance ad scanner running every 200ms
+  // High-performance ad scanner running every 100ms
   setInterval(detectAdAndBingeState, 100);
 
   /* ==========================================================================
