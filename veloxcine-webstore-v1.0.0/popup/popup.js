@@ -292,9 +292,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       upgradeModal.style.display = 'none';
     });
   }
-});
 
-  // 8. Reset All Settings Handler
+  // 8. Reset All Settings Handler (Placed inside DOMContentLoaded)
   const btnReset = document.getElementById('btn-reset-settings');
   if (btnReset) {
     btnReset.addEventListener('click', async () => {
@@ -324,7 +323,19 @@ document.addEventListener('DOMContentLoaded', async () => {
           ytShorts: false,
           brightness: 100
         },
-        profiles: {}
+        profiles: {
+          youtube: {
+            aspectEnabled: false,
+            defaultAspect: 'original',
+            subEnabled: false,
+            subPosition: 'bottom-center',
+            adWarpEnabled: true,
+            bingeEnabled: true,
+            ytTheater: false,
+            ytShorts: false,
+            brightness: 100
+          }
+        }
       };
 
       await chrome.storage.local.set({ veloxcine_settings: defaultSettings });
@@ -339,3 +350,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 2000);
     });
   }
+});

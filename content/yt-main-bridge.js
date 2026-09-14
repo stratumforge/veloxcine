@@ -9,36 +9,58 @@
   function skipAdNow() {
     try {
       const player = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
-      if (player) {
-        // Direct call to YouTube player API method if ad is active
-        if (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting')) {
-          if (typeof player.skipAd === 'function') {
-            player.skipAd();
+      const video = player ? player.querySelector('video') : document.querySelector('video');
+
+      // 1. If video is paused during ad, unpause it immediately so it doesn't freeze
+      if (player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'))) {
+        if (video && video.paused) {
+          try { video.play(); } catch(e) {}
+        }
+        if (typeof player.skipAd === 'function') {
+          player.skipAd();
+        }
+      }
+
+      // 2. Unconditionally click any skip button in page context
+      const skipSelectors = [
+        'button.ytp-ad-skip-button-modern',
+        '.ytp-ad-skip-button-modern',
+        'button.ytp-ad-skip-button',
+        '.ytp-ad-skip-button',
+        '.ytp-ad-skip-button-slot button',
+        '.ytp-ad-skip-button-container button',
+        'button[id^="skip-button"]',
+        'div[id^="skip-button"]',
+        'button.ytp-skip-ad-button',
+        '.ytp-skip-ad-button button',
+        '.videoAdUiSkipButton',
+        '[aria-label*="Skip"]',
+        '[aria-label*="skip"]',
+        '.ytp-ad-skip-button-slot',
+        '.ytp-ad-skip-button-container',
+        '.ytp-skip-ad-button'
+      ];
+
+      for (let i = 0; i < skipSelectors.length; i++) {
+        const btns = document.querySelectorAll(skipSelectors[i]);
+        for (let j = 0; j < btns.length; j++) {
+          const b = btns[j];
+          if (b) {
+            if (typeof b.click === 'function') {
+              try { b.click(); } catch(e) {}
+            }
+            const child = b.querySelector('button, [class*="skip"], .ytp-ad-text');
+            if (child && typeof child.click === 'function') {
+              try { child.click(); } catch(e) {}
+            }
           }
         }
       }
 
-      // Unconditionally click any visible skip button in page context
-      const skipBtns = document.querySelectorAll(
-        'button.ytp-ad-skip-button-modern, .ytp-ad-skip-button-modern, button.ytp-ad-skip-button, .ytp-ad-skip-button, .ytp-ad-skip-button-slot button, .ytp-ad-skip-button-container button, button[id^="skip-button"], button.ytp-skip-ad-button, .ytp-skip-ad-button button, .videoAdUiSkipButton, .ytp-ad-skip-button-slot, .ytp-ad-skip-button-container, .ytp-skip-ad-button'
-      );
-      for (let i = 0; i < skipBtns.length; i++) {
-        const b = skipBtns[i];
-        if (b) {
-          if (typeof b.click === 'function') {
-            try { b.click(); } catch(e) {}
-          }
-          const child = b.querySelector('button, [class*="skip"], .ytp-ad-text');
-          if (child && typeof child.click === 'function') {
-            try { child.click(); } catch(e) {}
-          }
-        }
-      }
-
-      // Text search
-      const btns = document.querySelectorAll('.html5-video-player button, .video-ads button, .ytp-ad-module button');
-      for (let i = 0; i < btns.length; i++) {
-        const b = btns[i];
+      // 3. Text search for any button containing "Skip"
+      const allBtns = document.querySelectorAll('.html5-video-player button, .video-ads button');
+      for (let i = 0; i < allBtns.length; i++) {
+        const b = allBtns[i];
         const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
         if (txt.includes('skip') && typeof b.click === 'function') {
           try { b.click(); } catch(e) {}

@@ -383,30 +383,22 @@
 
       const isPrem = typeof VeloxLicense !== 'undefined' ? VeloxLicense.isPremium() : state.isPremium;
 
-      // In Lifetime Premium: 16x Hyper-Warp + Fast Forward
+      // In Lifetime Premium: 16x Hyper-Warp
       if (isPrem) {
         try {
           video.playbackRate = 16.0;
         } catch (e) {
           video.playbackRate = 8.0;
         }
+      }
 
-        // Instant Skip Jump: Fast-forward straight to the end of the ad segment
-        if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration) {
-          video.currentTime = video.duration;
-        }
+      // If the ad video pauses, immediately resume it so it does not freeze
+      if (video.paused) {
+        try { video.play(); } catch(e) {}
       }
 
       // Dispatch skip signal to MAIN-world YouTube player bridge (calls player.skipAd())
       window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
-
-      // If video reached end or is paused at end screen, push play to trigger transition
-      if (isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.2) {
-        window.dispatchEvent(new CustomEvent('veloxcine-skip-ad'));
-        if (video.paused) {
-          try { video.play(); } catch(e) {}
-        }
-      }
 
     } else {
       // Ad is NOT active. Ensure speed is 1.0x and audio is unmuted (never stuck at 16x)
