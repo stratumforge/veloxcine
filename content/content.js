@@ -300,8 +300,7 @@
     if (state.detectedPlatform === 'youtube') {
       const moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
       isAd = Boolean(
-        (moviePlayer && (moviePlayer.classList.contains('ad-showing') || moviePlayer.classList.contains('ad-interrupting'))) ||
-        document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay:not([style*="display: none"])')
+        moviePlayer && (moviePlayer.classList.contains('ad-showing') || moviePlayer.classList.contains('ad-interrupting'))
       );
     } else if (state.detectedPlatform === 'netflix') {
       isAd = Boolean(document.querySelector('.ad-container, [data-uia="ad-breakpoint"]'));
@@ -369,10 +368,9 @@
       }
     }
 
-    clickAnySkipButton();
-
     // When ad is active
     if (isAd) {
+      clickAnySkipButton();
       if (!state.adWarp.isAdActive) {
         state.adWarp.isAdActive = true;
         state.adWarp.savedSpeed = video.playbackRate || 1;
@@ -889,6 +887,8 @@
       video.style.transform = '';
       video.style.objectFit = '';
       video.style.transition = '';
+      if (video.playbackRate && video.playbackRate !== 1.0) video.playbackRate = 1.0;
+      if (video.muted) video.muted = false;
     }
 
     state.subtitles.enabled = false;
