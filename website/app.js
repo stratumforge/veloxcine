@@ -1,113 +1,105 @@
-/**
- * VeloxCine™ Official Landing Page Interactive Simulator
- * Author: StratumForge Labs™
- */
+// VeloxCine™ Live Simulator & Invisible Geo-Pricing
 
-document.addEventListener('DOMContentLoaded', () => {
-  const simScreen = document.getElementById('sim-screen');
-  const simVideo = document.getElementById('sim-video');
-  const simSubBox = document.getElementById('sim-sub-box');
-  const simSubText = document.getElementById('sim-sub-text');
-  const simDimmerSlider = document.getElementById('sim-dimmer-slider');
-  const simDimmerVal = document.getElementById('sim-dimmer-val');
-  const simSizeSlider = document.getElementById('sim-size-slider');
-  const simSizeVal = document.getElementById('sim-size-val');
-  const simAdOverlay = document.getElementById('sim-ad-overlay');
-  const btnDemoAdWarp = document.getElementById('demo-ad-warp');
-  const btnSimSkip = document.getElementById('btn-sim-skip');
-
-  // 1. Aspect Ratio Simulator
-  document.querySelectorAll('.sim-btn[data-aspect]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.sim-btn[data-aspect]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const aspect = btn.getAttribute('data-aspect');
-      if (aspect === '16-9') {
-        simScreen.className = 'sim-screen-wrap aspect-16-9';
-        simVideo.className = 'sim-video-art';
-      } else if (aspect === '21-9') {
-        simScreen.className = 'sim-screen-wrap aspect-21-9';
-        simVideo.className = 'sim-video-art';
-      } else if (aspect === 'crop') {
-        simScreen.className = 'sim-screen-wrap aspect-16-9';
-        simVideo.className = 'sim-video-art crop-aspect';
-      }
-    });
+// 1. Simulator Aspect Switching
+document.querySelectorAll('.sim-btn[data-aspect]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.sim-btn[data-aspect]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const aspect = btn.getAttribute('data-aspect');
+    const screen = document.getElementById('sim-screen');
+    if (screen) {
+      screen.className = 'sim-screen-wrap aspect-' + aspect;
+    }
   });
+});
 
-  // 2. Draggable Subtitle Box in Simulator
+// 2. Simulator 16x Ad Warp
+const btnWarp = document.getElementById('demo-ad-warp');
+const adOverlay = document.getElementById('sim-ad-overlay');
+const btnSkip = document.getElementById('btn-sim-skip');
+
+if (btnWarp && adOverlay) {
+  btnWarp.addEventListener('click', () => {
+    adOverlay.classList.add('active');
+    setTimeout(() => {
+      if (btnSkip) btnSkip.textContent = 'Auto-Skipping in 0.01s...';
+    }, 300);
+    setTimeout(() => {
+      adOverlay.classList.remove('active');
+      if (btnSkip) btnSkip.textContent = 'Auto-Skipping in 0.05s...';
+    }, 1200);
+  });
+}
+
+if (btnSkip) {
+  btnSkip.addEventListener('click', () => {
+    if (adOverlay) adOverlay.classList.remove('active');
+  });
+}
+
+// 3. Subtitle Dragger in Simulator
+const subBox = document.getElementById('sim-sub-box');
+if (subBox) {
   let isDragging = false;
-  let startX, startY;
+  let startY = 0;
+  let startBottom = 24;
 
-  simSubBox.addEventListener('mousedown', (e) => {
+  subBox.addEventListener('mousedown', (e) => {
     isDragging = true;
-    startX = e.clientX - simSubBox.offsetLeft;
-    startY = e.clientY - simSubBox.offsetTop;
-    simSubBox.style.cursor = 'grabbing';
-    e.preventDefault();
+    startY = e.clientY;
+    startBottom = parseInt(window.getComputedStyle(subBox).bottom, 10) || 24;
+    subBox.style.cursor = 'grabbing';
   });
 
   window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    const parentRect = simScreen.getBoundingClientRect();
-    let newX = e.clientX - parentRect.left;
-    let newY = e.clientY - parentRect.top;
-
-    // Constrain inside parent
-    newX = Math.max(80, Math.min(parentRect.width - 80, newX));
-    newY = Math.max(30, Math.min(parentRect.height - 40, newY));
-
-    simSubBox.style.left = `${newX}px`;
-    simSubBox.style.top = `${newY}px`;
-    simSubBox.style.bottom = 'auto';
+    const dy = startY - e.clientY;
+    const newBottom = Math.max(10, Math.min(220, startBottom + dy));
+    subBox.style.bottom = newBottom + 'px';
   });
 
   window.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      simSubBox.style.cursor = 'grab';
+      subBox.style.cursor = 'grab';
     }
   });
+}
 
-  // 3. Subtitle Dimmer Slider
-  simDimmerSlider.addEventListener('input', (e) => {
+// 4. Simulator Sliders (Dimmer, Font Size, Color)
+const dimmerSlider = document.getElementById('sim-dimmer-slider');
+const dimmerVal = document.getElementById('sim-dimmer-val');
+const subText = document.getElementById('sim-sub-text');
+
+if (dimmerSlider && dimmerVal && subText) {
+  dimmerSlider.addEventListener('input', (e) => {
     const val = e.target.value;
-    simDimmerVal.textContent = `${val}%`;
-    simSubBox.style.filter = `brightness(${val}%)`;
+    dimmerVal.textContent = val + '%';
+    subText.style.opacity = val / 100;
   });
+}
 
-  // 4. Font Size Slider
-  simSizeSlider.addEventListener('input', (e) => {
+const sizeSlider = document.getElementById('sim-size-slider');
+const sizeVal = document.getElementById('sim-size-val');
+
+if (sizeSlider && sizeVal && subText) {
+  sizeSlider.addEventListener('input', (e) => {
     const val = e.target.value;
-    simSizeVal.textContent = `${val}px`;
-    simSubText.style.fontSize = `${val}px`;
+    sizeVal.textContent = val + 'px';
+    subText.style.fontSize = val + 'px';
   });
+}
 
-  // 5. Color Swatches
-  document.querySelectorAll('.sim-color-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      document.querySelectorAll('.sim-color-dot').forEach(d => d.classList.remove('active'));
-      dot.classList.add('active');
-      simSubText.style.color = dot.getAttribute('data-color');
-    });
-  });
-
-  // 6. Simulate 16x Ad-Warp
-  btnDemoAdWarp.addEventListener('click', () => {
-    simAdOverlay.classList.add('show');
-    clearTimeout(simAdOverlay._timer);
-    simAdOverlay._timer = setTimeout(() => {
-      simAdOverlay.classList.remove('show');
-    }, 1800);
-  });
-
-  btnSimSkip.addEventListener('click', () => {
-    simAdOverlay.classList.remove('show');
+document.querySelectorAll('.sim-color-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('.sim-color-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    const color = dot.getAttribute('data-color');
+    if (subText) subText.style.color = color;
   });
 });
 
-// Lightbox helper functions
+// 5. Lightbox Modal
 window.openLightbox = function(src) {
   const modal = document.getElementById('lightbox-modal');
   const img = document.getElementById('lightbox-img');
@@ -119,128 +111,54 @@ window.openLightbox = function(src) {
 
 window.closeLightbox = function() {
   const modal = document.getElementById('lightbox-modal');
-  if (modal) {
-    modal.classList.remove('active');
-  }
+  if (modal) modal.classList.remove('active');
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    window.closeLightbox();
-  }
+  if (e.key === 'Escape') window.closeLightbox();
 });
 
-// --- Dynamic Regional Pricing & Anti-VPN Verification Logic ---
-(function initRegionalPricing() {
-  const regionFlag = document.getElementById('region-flag');
-  const regionStatus = document.getElementById('region-status');
-  const btnInr = document.getElementById('btn-inr');
-  const btnUsd = document.getElementById('btn-usd');
-  const priceDisplay = document.getElementById('pro-price-display');
+// 6. Seamless Invisible Geo-Pricing (No toggles, single price only)
+(async function initInvisiblePricing() {
+  const priceVal = document.getElementById('price-val');
   const paymentDesc = document.getElementById('pro-payment-desc');
   const btnCheckoutText = document.getElementById('btn-pro-checkout-text');
-  const btnCheckout = document.getElementById('btn-pro-checkout');
   const popularBadge = document.getElementById('popular-badge');
-  const vpnDetailsText = document.getElementById('vpn-details-text');
 
-  let detectedCountry = 'IN';
-  let isVpnSuspect = false;
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const isIndianTz = tz.includes('Kolkata') || tz.includes('Calcutta') || tz.includes('India');
 
-  window.setCurrency = function(curr, isManual = false) {
-    if (curr === 'INR') {
-      if (btnInr) btnInr.classList.add('active');
-      if (btnUsd) btnUsd.classList.remove('active');
+  let isIndia = isIndianTz;
 
-      if (priceDisplay) {
-        priceDisplay.innerHTML = '<span class="price-val">₹399</span><span class="price-period">One-Time Lifetime</span>';
-      }
-      if (paymentDesc) {
-        paymentDesc.textContent = 'Instant activation via UPI (Google Pay, PhonePe, Paytm, CRED) & RuPay.';
-      }
-      if (btnCheckoutText) {
-        btnCheckoutText.textContent = '⚡ Pay ₹399 with UPI';
-      }
-      if (popularBadge) {
-        popularBadge.textContent = 'INDIA EXCLUSIVE • UPI ENABLED';
-      }
-
-      if (isManual && isVpnSuspect) {
-        if (regionStatus) {
-          regionStatus.innerHTML = 'Showing <strong>₹399 INR</strong> (Requires active Indian UPI app or Indian bank account to checkout)';
-        }
-      }
-    } else {
-      if (btnInr) btnInr.classList.remove('active');
-      if (btnUsd) btnUsd.classList.add('active');
-
-      if (priceDisplay) {
-        priceDisplay.innerHTML = '<span class="price-val">$12.99</span><span class="price-period">One-Time Lifetime</span>';
-      }
-      if (paymentDesc) {
-        paymentDesc.textContent = 'Instant activation via Apple Pay, Google Pay & International Credit/Debit Cards.';
-      }
-      if (btnCheckoutText) {
-        btnCheckoutText.textContent = 'Get Lifetime Pro - $12.99';
-      }
-      if (popularBadge) {
-        popularBadge.textContent = 'GLOBAL LIFETIME PASS';
-      }
-
-      if (isManual && regionStatus) {
-        regionStatus.innerHTML = 'Showing <strong>$12.99 USD</strong> (Global checkout via Apple Pay / Cards)';
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      const country = data.country_code || '';
+      // Anti-VPN: If IP says IN but system timezone is Western, classify as international
+      const isWesternTz = tz.startsWith('America/') || tz.startsWith('Europe/') || tz.startsWith('Australia/');
+      if (country === 'IN' && !isWesternTz) {
+        isIndia = true;
+      } else if (country !== 'IN') {
+        isIndia = false;
       }
     }
-  };
-
-  async function detectLocation() {
-    const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    const isIndianTz = systemTz.includes('Kolkata') || systemTz.includes('Calcutta') || systemTz.includes('India');
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        detectedCountry = data.country_code || 'IN';
-
-        // Anti-VPN Verification:
-        // If IP is reported as India (IN), but client system timezone is Western/US/EU, flag VPN proxy
-        const isWesternTz = systemTz.startsWith('America/') || systemTz.startsWith('Europe/') || systemTz.startsWith('Australia/');
-        if (detectedCountry === 'IN' && isWesternTz) {
-          isVpnSuspect = true;
-        }
-      }
-    } catch (err) {
-      // Fallback to timezone if IP lookup times out
-      detectedCountry = isIndianTz ? 'IN' : 'US';
-    }
-
-    // Apply detected price & security flags
-    if (isVpnSuspect) {
-      // VPN detected: enforce USD or warn
-      window.setCurrency('USD');
-      if (regionFlag) regionFlag.textContent = '🛡️';
-      if (regionStatus) {
-        regionStatus.innerHTML = 'VPN / Proxy detected. Standard pricing set to <strong>$12.99 USD</strong>. (Domestic ₹399 requires Indian UPI validation).';
-      }
-    } else if (detectedCountry === 'IN') {
-      window.setCurrency('INR');
-      if (regionFlag) regionFlag.textContent = '🇮🇳';
-      if (regionStatus) {
-        regionStatus.innerHTML = 'Detected region: <strong>India</strong> (Domestic UPI & RuPay Enabled)';
-      }
-    } else {
-      window.setCurrency('USD');
-      if (regionFlag) regionFlag.textContent = '🌐';
-      if (regionStatus) {
-        regionStatus.innerHTML = 'Detected region: <strong>International</strong> (Global Card & Apple Pay Checkout)';
-      }
-    }
+  } catch (e) {
+    // Keep timezone fallback
   }
 
-  detectLocation();
+  if (isIndia) {
+    if (priceVal) priceVal.textContent = '₹399';
+    if (paymentDesc) paymentDesc.textContent = 'Instant activation with UPI (Google Pay, PhonePe, Paytm, CRED) & RuPay.';
+    if (btnCheckoutText) btnCheckoutText.textContent = 'Get Lifetime Pro • ₹399';
+    if (popularBadge) popularBadge.textContent = 'SPECIAL LAUNCH OFFER • ONE-TIME';
+  } else {
+    if (priceVal) priceVal.textContent = '$12.99';
+    if (paymentDesc) paymentDesc.textContent = 'Instant activation via Apple Pay, Google Pay & Credit/Debit Cards.';
+    if (btnCheckoutText) btnCheckoutText.textContent = 'Get Lifetime Pro • $12.99';
+    if (popularBadge) popularBadge.textContent = 'GLOBAL PASS • ONE-TIME';
+  }
 })();

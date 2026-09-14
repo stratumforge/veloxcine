@@ -1234,3 +1234,17 @@ body {
 .btn-warp-trigger {
   white-space: nowrap;
 }
+
+/* Trademark Sup Styling */
+.tm {
+  font-size: 0.58em;
+  font-weight: 700;
+  vertical-align: super;
+  margin-left: 2px;
+  color: var(--cyan);
+}
+
+/* Feature Icon SVGs */
+.feature-icon svg {
+  display: block;
+}
