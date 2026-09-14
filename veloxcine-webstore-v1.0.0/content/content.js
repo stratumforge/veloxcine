@@ -250,13 +250,6 @@
       if (typeof el.click === 'function') {
         el.click();
       }
-
-      // Also trigger on parent container in case listener is on wrapper
-      if (el.parentElement && el.parentElement !== document.body) {
-        el.parentElement.dispatchEvent(new PointerEvent('pointerdown', eventInit));
-        el.parentElement.dispatchEvent(new MouseEvent('click', eventInit));
-        if (typeof el.parentElement.click === 'function') el.parentElement.click();
-      }
     } catch (e) {}
   }
 
@@ -277,7 +270,9 @@
       ];
       for (let i = 0; i < introButtons.length; i++) {
         const btn = document.querySelector(introButtons[i]);
-        if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0)) {
+        if (btn && (btn.offsetParent !== null || btn.offsetWidth > 0) && !btn._veloxClicked) {
+          btn._veloxClicked = true;
+          setTimeout(() => { if (btn) btn._veloxClicked = false; }, 3000);
           try {
             simulateFullClick(btn);
             showToast('⚡ Binge Mode: Intro/Recap Skipped');
@@ -302,56 +297,37 @@
     if (!state.adWarp.enabled) return;
 
     function isPrimeAdActive() {
-      // 1. Prime Video SDK specific ad classes & indicators
-      const primeAdSelectors = [
+      // 1. Prime Video SDK specific ad countdown elements
+      const primeAdTimerSelectors = [
         '.atvwebplayersdk-adtimeindicator-text',
-        '.atvwebplayersdk-ad-timer',
-        '.atvwebplayersdk-ad-time-indicator',
-        '.atvwebplayersdk-ad-label',
-        '.atvwebplayersdk-ad-notice',
-        '.atvwebplayersdk-adbreak',
-        '[class*="atvwebplayersdk-ad"]',
         '[class*="adtimeindicator"]',
-        '[class*="ad-timer"]',
-        '[class*="ad-time"]',
-        '[class*="adBreak"]',
-        '[class*="adNotice"]',
-        '[class*="adRemaining"]',
-        '[class*="adCount"]',
-        '[class*="adIndicator"]',
-        '[class*="ad-indicator"]',
-        '[data-testid*="ad-timer"]',
-        '[data-testid*="ad-indicator"]',
-        '[data-testid*="ad-badge"]',
-        '[data-testid*="ad-label"]',
-        '[data-testid*="ad-time"]',
-        '[data-testid*="adFeedback"]',
-        '[data-testid="ad-feedback-button"]',
-        '[aria-label*="Ad •" i]',
-        '[aria-label*="Ad 1 of" i]',
-        '[aria-label*="Ad 2 of" i]',
-        '[aria-label*="Advertisement" i]'
+        '[data-testid="ad-timer"]',
+        '[data-testid="ad-indicator"]',
+        '[data-testid="ad-badge"]',
+        '.atvwebplayersdk-ad-timer',
+        '.atvwebplayersdk-ad-time-indicator'
       ];
 
-      for (let i = 0; i < primeAdSelectors.length; i++) {
-        const el = document.querySelector(primeAdSelectors[i]);
+      for (let i = 0; i < primeAdTimerSelectors.length; i++) {
+        const el = document.querySelector(primeAdTimerSelectors[i]);
         if (el && (el.offsetParent !== null || el.offsetWidth > 0 || el.offsetHeight > 0)) {
-          return true;
+          const text = (el.innerText || el.textContent || '').trim();
+          if (text.length > 0) return true;
         }
       }
 
-      // 2. Text inspection inside player overlay containers
-      const overlays = document.querySelectorAll('.atvwebplayersdk-overlays-container, .rendererContainer, [class*="webPlayerOverlay"], .atvwebplayersdk-bottompanel-container');
-      for (let i = 0; i < overlays.length; i++) {
-        const txt = (overlays[i].innerText || overlays[i].textContent || '').toLowerCase();
-        if (/ad\s*\d+\s*of\s*\d+/i.test(txt) ||
-            /ad\s*•/i.test(txt) ||
-            /ad\s*:\s*\d+/i.test(txt) ||
-            txt.includes('your program will resume') ||
-            txt.includes('program resumes in') ||
-            txt.includes('learn more') ||
-            txt.includes('advertisement')) {
-          return true;
+      // 2. Scan overlay container specifically for ad countdown text (e.g. 'Ad 1 of 2', 'Ad • 0:15', 'resumes in')
+      const overlay = document.querySelector('.atvwebplayersdk-overlays-container, .rendererContainer');
+      if (overlay) {
+        const adBadges = overlay.querySelectorAll('[class*="ad" i], [aria-label*="ad" i]');
+        for (let i = 0; i < adBadges.length; i++) {
+          const txt = (adBadges[i].innerText || adBadges[i].textContent || '').trim();
+          if (/ad\s+\d+\s+of\s+\d+/i.test(txt) ||
+              /ad\s*•\s*\d+/i.test(txt) ||
+              /ad\s*:\s*\d+/i.test(txt) ||
+              /resumes\s+in\s+\d+/i.test(txt)) {
+            return true;
+          }
         }
       }
       return false;
@@ -480,8 +456,8 @@
       }
 
     } else {
-      // Ad is NOT active. Ensure speed is 1.0x and audio is unmuted (never stuck at 16x)
-      if (state.adWarp.isAdActive) {
+      // Ad is NOT active. Ensure speed is 1.0x and audio is unmuted
+      if (state.adWarp.isAdActive || allVideos.some(v => v.playbackRate > 2.0)) {
         state.adWarp.isAdActive = false;
         allVideos.forEach(v => {
           v.playbackRate = 1.0;
@@ -490,7 +466,7 @@
             if (protoSetter) protoSetter.call(v, 1.0);
           } catch (e) {}
 
-          if (state.adWarp.autoMute && v.muted) {
+          if (v.muted) {
             v.muted = false;
             if (state.adWarp.savedVolume !== undefined) v.volume = state.adWarp.savedVolume;
           }
