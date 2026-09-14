@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VeloxCine™ | Universal Streaming, Subtitle & Aspect Suite</title>
-  <meta name="description" content="VeloxCine™ by StratumForge Labs™ is the universal streaming suite for Netflix, Prime Video, Hotstar & Apple TV+. 16x ad-warp, drag-and-drop subtitles, and 21:9 ultrawide black bar eliminator.">
+  <title>VeloxCineâ„¢ | Universal Streaming, Subtitle & Aspect Suite</title>
+  <meta name="description" content="VeloxCineâ„¢ by StratumForge Labsâ„¢ is the universal streaming suite for Netflix, Prime Video, Hotstar & Apple TV+. 16x ad-warp, drag-and-drop subtitles, and 21:9 ultrawide black bar eliminator.">
+  <link rel="icon" type="image/png" href="assets/icon128.png">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,23 +21,16 @@
     <div class="nav-container">
       <div class="brand">
         <div class="brand-badge-logo">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M5 3L19 12L5 21V3Z" fill="url(#heroGrad)"/>
-            <defs>
-              <linearGradient id="heroGrad" x1="5" y1="3" x2="19" y2="21">
-                <stop stop-color="#00e5ff"/>
-                <stop offset="1" stop-color="#8b5cf6"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="assets/icon128.png" alt="VeloxCine Logo" class="brand-logo-img">
         </div>
         <div class="brand-text">
-          <span class="brand-name">Velox<span>Cine</span>™</span>
-          <span class="brand-studio">By StratumForge Labs™</span>
+          <span class="brand-name">Velox<span>Cine</span>â„¢</span>
+          <span class="brand-studio">By StratumForge Labsâ„¢</span>
         </div>
       </div>
 
       <nav class="nav-links">
+        <a href="#gallery">Snapshots</a>
         <a href="#features">Features</a>
         <a href="#interactive-demo">Live Demo</a>
         <a href="#pricing">Lifetime Pro</a>
@@ -52,9 +46,13 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="container hero-content">
+      <div class="hero-brand-emblem">
+        <img src="assets/logo.jpg" alt="VeloxCineâ„¢ Official Emblem" class="hero-logo-large">
+      </div>
+
       <div class="hero-badge">
         <span class="pulse-dot"></span>
-        <span>Manifest V3 Ready • Universal Streaming Suite</span>
+        <span>Manifest V3 Ready â€¢ Universal Streaming Suite</span>
       </div>
 
       <h1 class="hero-title">
@@ -77,12 +75,13 @@
           </svg>
           Install Chrome Extension
         </a>
-        <a href="#interactive-demo" class="btn btn-secondary">
+        <a href="#gallery" class="btn btn-secondary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
           </svg>
-          Try Live Simulator
+          View Screenshots
         </a>
       </div>
 
@@ -94,7 +93,69 @@
           <span class="platform-tag">Amazon Prime Video</span>
           <span class="platform-tag">Disney+ Hotstar</span>
           <span class="platform-tag">Apple TV+</span>
+          <span class="platform-tag">YouTube</span>
           <span class="platform-tag">Open HTML5 Players</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product Snapshots & Gallery Section -->
+  <section class="gallery-section" id="gallery">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">IN-ACTION SHOWCASE</span>
+        <h2 class="section-title">VeloxCineâ„¢ in Real-World Usage</h2>
+        <p class="section-desc">Designed from the ground up for high-end cinema, ultrawide monitors, and distraction-free streaming.</p>
+      </div>
+
+      <div class="gallery-grid">
+        <!-- Card 1: HUD in Action -->
+        <div class="gallery-card">
+          <div class="gallery-img-wrap">
+            <img src="screenshots/1-floating-hud.jpg" alt="VeloxCine Floating HUD in Active Usage" class="gallery-img" onclick="openLightbox(this.src)">
+            <span class="gallery-tag">In-Page Floating HUD</span>
+          </div>
+          <div class="gallery-info">
+            <h3 class="gallery-title">Translucent In-Stream Controller</h3>
+            <p class="gallery-desc">Non-intrusive frosted glass HUD overlay that appears on demand (or via <kbd>Ctrl+Shift+H</kbd>). Toggle ultrawide fit, ad-warp, subtitle dimming, and audio boosters with zero playback interruption.</p>
+          </div>
+        </div>
+
+        <!-- Card 2: 21:9 Ultrawide -->
+        <div class="gallery-card">
+          <div class="gallery-img-wrap">
+            <img src="screenshots/2-ultrawide-zero-black-bars.jpg" alt="21:9 Ultrawide Zero Black Bars Comparison" class="gallery-img" onclick="openLightbox(this.src)">
+            <span class="gallery-tag">Zero Black Bars</span>
+          </div>
+          <div class="gallery-info">
+            <h3 class="gallery-title">21:9 Ultrawide & Aspect Expander</h3>
+            <p class="gallery-desc">Transforms letterboxed films into full-bleed panoramic cinema. Eliminate unsightly horizontal and vertical black bars across all modern monitors and TVs.</p>
+          </div>
+        </div>
+
+        <!-- Card 3: Smart Subtitles & OLED Dimmer -->
+        <div class="gallery-card">
+          <div class="gallery-img-wrap">
+            <img src="screenshots/3-smart-subtitles-oled-dimmer.jpg" alt="Interactive Subtitle Positioning & OLED Dimmer" class="gallery-img" onclick="openLightbox(this.src)">
+            <span class="gallery-tag">Smart Subtitles</span>
+          </div>
+          <div class="gallery-info">
+            <h3 class="gallery-title">Drag & Drop Subtitles + OLED Dimmer</h3>
+            <p class="gallery-desc">Click and drag subtitle boxes to any coordinate on screen. Tame blinding 100% white subtitles down to eye-soothing levels with zero burn-in risk on OLED displays.</p>
+          </div>
+        </div>
+
+        <!-- Card 4: Store Promo Marquee -->
+        <div class="gallery-card">
+          <div class="gallery-img-wrap">
+            <img src="screenshots/4-store-promo-marquee.jpg" alt="VeloxCine Suite Overview" class="gallery-img" onclick="openLightbox(this.src)">
+            <span class="gallery-tag">VeloxCine Suite</span>
+          </div>
+          <div class="gallery-info">
+            <h3 class="gallery-title">The Complete Streaming Powerhouse</h3>
+            <p class="gallery-desc">Hyper-warp ad skipping at 16x, microsecond audio-subtitle synchronization, speech enhancement, and custom SRT/VTT file drag-and-drop loading.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -105,7 +166,7 @@
     <div class="container">
       <div class="section-header">
         <span class="section-badge">INTERACTIVE SANDBOX</span>
-        <h2 class="section-title">Experience the Power of VeloxCine™</h2>
+        <h2 class="section-title">Experience the Power of VeloxCineâ„¢</h2>
         <p class="section-desc">Try real-time black bar elimination, interactive subtitle dragging, and OLED dimming right inside this live sandbox.</p>
       </div>
 
@@ -114,13 +175,13 @@
         <div class="sim-toolbar">
           <div class="sim-brand">
             <span class="sim-status-dot"></span>
-            <span>VeloxCine™ In-Page Player Simulator</span>
+            <span>VeloxCineâ„¢ In-Page Player Simulator</span>
           </div>
           <div class="sim-controls">
             <button class="sim-btn active" data-aspect="16-9">16:9 Standard</button>
             <button class="sim-btn" data-aspect="21-9">21:9 Ultrawide Fill</button>
             <button class="sim-btn" data-aspect="crop">Letterbox Crop</button>
-            <button class="sim-btn btn-warp-trigger" id="demo-ad-warp">⚡ Simulate 16x Ad-Warp</button>
+            <button class="sim-btn btn-warp-trigger" id="demo-ad-warp">âš¡ Simulate 16x Ad-Warp</button>
           </div>
         </div>
 
@@ -129,7 +190,7 @@
           <div class="sim-video-art" id="sim-video">
             <div class="art-overlay-cinema"></div>
             <div class="sim-scene-elements">
-              <span class="scene-badge">4K ULTRA HD • HDR</span>
+              <span class="scene-badge">4K ULTRA HD â€¢ HDR</span>
               <div class="scene-title">Interstellar Voyage</div>
             </div>
 
@@ -142,9 +203,9 @@
             <!-- Simulated Ad Break Overlay -->
             <div class="sim-ad-overlay" id="sim-ad-overlay">
               <div class="sim-ad-modal">
-                <div class="ad-tag">⚡ AD BREAK DETECTED</div>
+                <div class="ad-tag">âš¡ AD BREAK DETECTED</div>
                 <div class="ad-speed-meter">SPEED ACCELERATED TO 16.0X</div>
-                <div class="ad-muted-tag">🔇 SILENT AUTO-MUTE ACTIVE</div>
+                <div class="ad-muted-tag">ðŸ”‡ SILENT AUTO-MUTE ACTIVE</div>
                 <button class="btn-sim-skip" id="btn-sim-skip">Auto-Skipping in 0.05s...</button>
               </div>
             </div>
@@ -190,7 +251,7 @@
 
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon icon-cyan">⚡</div>
+          <div class="feature-icon icon-cyan">âš¡</div>
           <h3 class="feature-title">16x Hyper-Warp Ad-Skipper</h3>
           <p class="feature-desc">
             Even if you are on basic ad-supported tiers, VeloxCine automatically fast-forwards ads at 16.0x, mutes the audio silently, and clicks "Skip Ad" instantly.
@@ -198,7 +259,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon icon-purple">🎯</div>
+          <div class="feature-icon icon-purple">ðŸŽ¯</div>
           <h3 class="feature-title">Freeform Draggable Subtitles</h3>
           <p class="feature-desc">
             Click and drag subtitles anywhere on screen. Move them above the actor's face, align them with dialogue, or place them into bottom black bars.
@@ -206,7 +267,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon icon-gold">💡</div>
+          <div class="feature-icon icon-gold">ðŸ‘ï¸</div>
           <h3 class="feature-title">OLED & HDR Subtitle Dimmer</h3>
           <p class="feature-desc">
             Standard subtitles beam at 100% white, blinding you during dark scenes. Dim subtitles down to 25% for a comfortable, eye-saver cinema experience.
@@ -214,7 +275,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon icon-blue">🖥️</div>
+          <div class="feature-icon icon-blue">ðŸ“</div>
           <h3 class="feature-title">21:9 Ultrawide & Black Bar Crop</h3>
           <p class="feature-desc">
             Eliminate letterbox and pillarbox bars. Fill 21:9 monitors, crop 2.39:1 films to 16:9 full screen, or apply custom pan & zoom with hotkey <strong>Z</strong>.
@@ -222,7 +283,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon icon-emerald">📁</div>
+          <div class="feature-icon icon-emerald">ðŸ“‚</div>
           <h3 class="feature-title">External Subtitle (.SRT/.VTT) Injector</h3>
           <p class="feature-desc">
             Streaming service missing subtitles in your language? Drag and drop any custom foreign .srt or .vtt file with microsecond audio synchronization.
@@ -230,7 +291,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon icon-rose">🔊</div>
+          <div class="feature-icon icon-rose">ðŸŽ™ï¸</div>
           <h3 class="feature-title">600% Dialogue Audio Booster</h3>
           <p class="feature-desc">
             Whisper-quiet movie dialogue? VeloxCine taps directly into the browser Web Audio pipeline to boost speech gain up to 6x without distortion.
@@ -249,6 +310,18 @@
         <p class="section-desc">No recurring subscriptions. One lifetime purchase tied to your Gmail account.</p>
       </div>
 
+      <!-- Geolocation Currency Bar & Anti-VPN Verification Notice -->
+      <div class="pricing-region-banner" id="pricing-region-banner">
+        <div class="region-detected">
+          <span class="region-icon" id="region-flag">🇮🇳</span>
+          <span class="region-text" id="region-status">Detecting regional pricing...</span>
+        </div>
+        <div class="currency-toggle">
+          <button class="curr-btn active" id="btn-inr" onclick="setCurrency('INR', true)">🇮🇳 INR (₹399)</button>
+          <button class="curr-btn" id="btn-usd" onclick="setCurrency('USD', true)">🌐 USD ($12.99)</button>
+        </div>
+      </div>
+
       <div class="pricing-grid">
         <!-- Free Tier Card -->
         <div class="pricing-card">
@@ -258,37 +331,58 @@
             <p class="tier-desc">Essential streaming enhancement for everyone.</p>
           </div>
           <ul class="perks-list">
-            <li>✅ Standard Skip-Ad Auto-Clicker</li>
-            <li>✅ 16:9 Crop and Fit-to-Window</li>
-            <li>✅ Basic Subtitle Font Size & 3 Colors</li>
-            <li>✅ Fixed Bottom-Center Position</li>
-            <li>❌ 16x Hyper-Warp Acceleration</li>
-            <li>❌ Freeform Drag-to-Position</li>
-            <li>❌ OLED / HDR Subtitle Dimmer</li>
-            <li>❌ External SRT/VTT Subtitle Injector</li>
+            <li>✓ Standard Skip-Ad Auto-Clicker</li>
+            <li>✓ 16:9 Crop and Fit-to-Window</li>
+            <li>✓ Basic Subtitle Font Size & 3 Colors</li>
+            <li>✓ Fixed Bottom-Center Position</li>
+            <li class="disabled">✕ 16x Hyper-Warp Acceleration</li>
+            <li class="disabled">✕ Freeform Drag-to-Position</li>
+            <li class="disabled">✕ OLED / HDR Subtitle Dimmer</li>
+            <li class="disabled">✕ External SRT/VTT Subtitle Injector</li>
           </ul>
           <a href="#download" class="btn btn-outline">Install Free</a>
         </div>
 
         <!-- Lifetime Pro Card -->
         <div class="pricing-card popular">
-          <div class="popular-badge">MOST POPULAR • LIFETIME ACCESS</div>
+          <div class="popular-badge" id="popular-badge">BEST VALUE • ONE-TIME PURCHASE</div>
           <div class="card-header">
             <span class="tier-name">VeloxCine™ Lifetime Pro</span>
-            <div class="price">$14.99 <span>One-Time Fee</span></div>
-            <p class="tier-desc">Tied to your Gmail account. Works across all your devices.</p>
+            <div class="price" id="pro-price-display">
+              <span class="price-val">₹399</span>
+              <span class="price-period">Lifetime License</span>
+            </div>
+            <p class="tier-desc" id="pro-payment-desc">
+              Instant activation with UPI (Google Pay, PhonePe, Paytm) & RuPay.
+            </p>
           </div>
           <ul class="perks-list">
             <li>⚡ <strong>16x Hyper-Warp Ad-Skipper & Auto-Mute</strong></li>
             <li>🎯 <strong>Freeform Drag & Drop Subtitles anywhere</strong></li>
-            <li>💡 <strong>OLED / HDR Subtitle Dimmer (0%–100%)</strong></li>
-            <li>📁 <strong>Unlimited External Subtitle (.SRT/.VTT) Loader</strong></li>
-            <li>🖥️ <strong>21:9 Ultrawide Eliminator & Custom Zoom</strong></li>
+            <li>👁️ <strong>OLED / HDR Subtitle Dimmer (0%–100%)</strong></li>
+            <li>📂 <strong>Unlimited External Subtitle (.SRT/.VTT) Loader</strong></li>
+            <li>📐 <strong>21:9 Ultrawide Eliminator & Custom Zoom</strong></li>
             <li>✨ <strong>GPU Super-Resolution Sharpening Shader</strong></li>
-            <li>🔊 <strong>600% Speech Dialogue & Audio Booster</strong></li>
+            <li>🎙️ <strong>600% Speech Dialogue & Audio Booster</strong></li>
             <li>📺 <strong>Free Access to Upcoming Android TV / Fire TV APK</strong></li>
           </ul>
-          <a href="#download" class="btn btn-primary btn-block">Get Lifetime License</a>
+          <a href="#download" class="btn btn-primary btn-block" id="btn-pro-checkout">
+            <span id="btn-pro-checkout-text">Pay ₹399 with UPI</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Anti-VPN and Arbitrage Policy Note -->
+      <div class="vpn-notice-box" id="vpn-notice">
+        <div class="vpn-notice-content">
+          <span class="vpn-shield-icon">🛡️</span>
+          <div class="vpn-text">
+            <strong>Payment Security & Anti-Arbitrage Protection:</strong>
+            <p id="vpn-details-text">
+              The domestic ₹399 INR tier is exclusively authenticated through the Indian UPI Network (NPCI) and domestic RuPay cards. 
+              Non-Indian cards or VPN-proxied international payments are automatically routed to the standard $12.99 USD checkout.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -317,7 +411,7 @@
         </div>
         <div class="faq-item">
           <h4>What if a streaming platform updates its player?</h4>
-          <p>VeloxCine uses dynamic selector maps that are remotely maintained by StratumForge Labs™, allowing hot-fixes without waiting for Chrome Web Store reviews.</p>
+          <p>VeloxCine uses dynamic selector maps that are remotely maintained by StratumForge Labsâ„¢, allowing hot-fixes without waiting for Chrome Web Store reviews.</p>
         </div>
       </div>
     </div>
@@ -326,7 +420,7 @@
   <!-- Download & Installation Guide Section -->
   <section class="download-section" id="download">
     <div class="container download-box">
-      <h2>Install VeloxCine™ in 30 Seconds</h2>
+      <h2>Install VeloxCineâ„¢ in 30 Seconds</h2>
       <p>Load unpacked directly in Google Chrome or Chromium browsers (Brave, Edge, Opera, Vivaldi).</p>
       
       <div class="install-steps">
@@ -340,23 +434,34 @@
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <div class="step-text">Click <strong>Load unpacked</strong> and select the <code>F:\AI projects\VeloxCine</code> directory.</div>
+          <div class="step-text">Download & extract <code>veloxcine-webstore-v1.0.0.zip</code> or select folder.</div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Lightbox Modal for Screenshots -->
+  <div id="lightbox-modal" class="lightbox-modal" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img id="lightbox-img" class="lightbox-img" src="" alt="Screenshot Full View">
+  </div>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="container footer-content">
       <div class="footer-brand">
         <div class="brand-text">
-          <span class="brand-name">Velox<span>Cine</span>™</span>
-          <span class="brand-studio">By StratumForge Labs™</span>
+          <span class="brand-name">Velox<span>Cine</span>â„¢</span>
+          <span class="brand-studio">By StratumForge Labsâ„¢</span>
         </div>
         <p class="footer-copyright">
-          © 2026 StratumForge Labs™. All rights reserved. VeloxCine™ is a trademark of StratumForge Labs™. All streaming service names are trademarks of their respective owners.
+          Â© 2026 StratumForge Labsâ„¢. All rights reserved. VeloxCineâ„¢ is a trademark of StratumForge Labsâ„¢. All streaming service names are trademarks of their respective owners.
         </p>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="https://github.com/stratumforge/veloxcine" target="_blank" rel="noopener">GitHub Repository</a>
+        <a href="mailto:forgestratum@gmail.com">Contact Support</a>
       </div>
     </div>
   </footer>

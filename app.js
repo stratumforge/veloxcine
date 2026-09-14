@@ -106,3 +106,141 @@ document.addEventListener('DOMContentLoaded', () => {
     simAdOverlay.classList.remove('show');
   });
 });
+
+// Lightbox helper functions
+window.openLightbox = function(src) {
+  const modal = document.getElementById('lightbox-modal');
+  const img = document.getElementById('lightbox-img');
+  if (modal && img) {
+    img.src = src;
+    modal.classList.add('active');
+  }
+};
+
+window.closeLightbox = function() {
+  const modal = document.getElementById('lightbox-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    window.closeLightbox();
+  }
+});
+
+// --- Dynamic Regional Pricing & Anti-VPN Verification Logic ---
+(function initRegionalPricing() {
+  const regionFlag = document.getElementById('region-flag');
+  const regionStatus = document.getElementById('region-status');
+  const btnInr = document.getElementById('btn-inr');
+  const btnUsd = document.getElementById('btn-usd');
+  const priceDisplay = document.getElementById('pro-price-display');
+  const paymentDesc = document.getElementById('pro-payment-desc');
+  const btnCheckoutText = document.getElementById('btn-pro-checkout-text');
+  const btnCheckout = document.getElementById('btn-pro-checkout');
+  const popularBadge = document.getElementById('popular-badge');
+  const vpnDetailsText = document.getElementById('vpn-details-text');
+
+  let detectedCountry = 'IN';
+  let isVpnSuspect = false;
+
+  window.setCurrency = function(curr, isManual = false) {
+    if (curr === 'INR') {
+      if (btnInr) btnInr.classList.add('active');
+      if (btnUsd) btnUsd.classList.remove('active');
+
+      if (priceDisplay) {
+        priceDisplay.innerHTML = '<span class="price-val">₹399</span><span class="price-period">One-Time Lifetime</span>';
+      }
+      if (paymentDesc) {
+        paymentDesc.textContent = 'Instant activation via UPI (Google Pay, PhonePe, Paytm, CRED) & RuPay.';
+      }
+      if (btnCheckoutText) {
+        btnCheckoutText.textContent = '⚡ Pay ₹399 with UPI';
+      }
+      if (popularBadge) {
+        popularBadge.textContent = 'INDIA EXCLUSIVE • UPI ENABLED';
+      }
+
+      if (isManual && isVpnSuspect) {
+        if (regionStatus) {
+          regionStatus.innerHTML = 'Showing <strong>₹399 INR</strong> (Requires active Indian UPI app or Indian bank account to checkout)';
+        }
+      }
+    } else {
+      if (btnInr) btnInr.classList.remove('active');
+      if (btnUsd) btnUsd.classList.add('active');
+
+      if (priceDisplay) {
+        priceDisplay.innerHTML = '<span class="price-val">$12.99</span><span class="price-period">One-Time Lifetime</span>';
+      }
+      if (paymentDesc) {
+        paymentDesc.textContent = 'Instant activation via Apple Pay, Google Pay & International Credit/Debit Cards.';
+      }
+      if (btnCheckoutText) {
+        btnCheckoutText.textContent = 'Get Lifetime Pro - $12.99';
+      }
+      if (popularBadge) {
+        popularBadge.textContent = 'GLOBAL LIFETIME PASS';
+      }
+
+      if (isManual && regionStatus) {
+        regionStatus.innerHTML = 'Showing <strong>$12.99 USD</strong> (Global checkout via Apple Pay / Cards)';
+      }
+    }
+  };
+
+  async function detectLocation() {
+    const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const isIndianTz = systemTz.includes('Kolkata') || systemTz.includes('Calcutta') || systemTz.includes('India');
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        detectedCountry = data.country_code || 'IN';
+
+        // Anti-VPN Verification:
+        // If IP is reported as India (IN), but client system timezone is Western/US/EU, flag VPN proxy
+        const isWesternTz = systemTz.startsWith('America/') || systemTz.startsWith('Europe/') || systemTz.startsWith('Australia/');
+        if (detectedCountry === 'IN' && isWesternTz) {
+          isVpnSuspect = true;
+        }
+      }
+    } catch (err) {
+      // Fallback to timezone if IP lookup times out
+      detectedCountry = isIndianTz ? 'IN' : 'US';
+    }
+
+    // Apply detected price & security flags
+    if (isVpnSuspect) {
+      // VPN detected: enforce USD or warn
+      window.setCurrency('USD');
+      if (regionFlag) regionFlag.textContent = '🛡️';
+      if (regionStatus) {
+        regionStatus.innerHTML = 'VPN / Proxy detected. Standard pricing set to <strong>$12.99 USD</strong>. (Domestic ₹399 requires Indian UPI validation).';
+      }
+    } else if (detectedCountry === 'IN') {
+      window.setCurrency('INR');
+      if (regionFlag) regionFlag.textContent = '🇮🇳';
+      if (regionStatus) {
+        regionStatus.innerHTML = 'Detected region: <strong>India</strong> (Domestic UPI & RuPay Enabled)';
+      }
+    } else {
+      window.setCurrency('USD');
+      if (regionFlag) regionFlag.textContent = '🌐';
+      if (regionStatus) {
+        regionStatus.innerHTML = 'Detected region: <strong>International</strong> (Global Card & Apple Pay Checkout)';
+      }
+    }
+  }
+
+  detectLocation();
+})();
