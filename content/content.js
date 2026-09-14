@@ -474,10 +474,20 @@
     showToast(`Aspect: ${state.aspect.mode.toUpperCase()}`);
   }
 
-  /* ==========================================================================
+    /* ==========================================================================
      4. SUBTITLE ENGINE (CONDITIONAL MODIFIER & OLED DIMMER)
      ========================================================================== */
   let subtitleStyleTag = null;
+
+  function ensureYouTubeCCActive() {
+    if (state.detectedPlatform !== 'youtube') return;
+    try {
+      const ccBtn = document.querySelector('.ytp-subtitles-button');
+      if (ccBtn && ccBtn.getAttribute('aria-pressed') === 'false') {
+        ccBtn.click();
+      }
+    } catch (e) {}
+  }
 
   function injectSubtitleStyles() {
     if (!subtitleStyleTag) {
@@ -486,58 +496,92 @@
       (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
-    const { brightness, posX, posY, enabled } = state.subtitles;
-    const opacityVal = (brightness / 100).toFixed(2);
-    const filterVal = `brightness(${brightness}%)`;
+    const { brightness, posX, posY, enabled, preset } = state.subtitles;
+    const b = (typeof brightness === 'number' && !isNaN(brightness)) ? brightness : 100;
 
-    // Universal Subtitle Dimmer (works whether position modifier is on or off)
-    let css = `
-      .caption-window,
-      .ytp-caption-segment,
-      .player-timedtext,
-      .player-timedtext-text-container,
-      .atvwebplayersdk-subtitle-text,
-      .shaka-text-container span {
-        opacity: ${opacityVal} !important;
-        filter: ${filterVal} !important;
-        transition: opacity 0.2s ease, filter 0.2s ease !important;
-      }
-    `;
+    let css = '';
 
-    // Subtitle Position Modifier: Only override position coordinates if enabled
-    if (enabled) {
+    // 1. Subtitle Dimmer (OLED / Eye-Saver): ONLY targets text segments, never parent containers
+    if (b < 100) {
+      const opacityVal = (b / 100).toFixed(2);
+      const filterVal = `brightness(${b}%)`;
       css += `
-        .caption-window,
-        .caption-window.ytp-caption-window-bottom,
-        .caption-window.ytp-caption-window-rollup,
-        .player-timedtext-text-container {
-          position: absolute !important;
+        .ytp-caption-segment,
+        .atvwebplayersdk-subtitle-text,
+        .shaka-text-container span {
+          opacity: ${opacityVal} !important;
+          filter: ${filterVal} !important;
+          transition: opacity 0.2s ease, filter 0.2s ease !important;
+        }
+      `;
+    }
+
+    // 2. Position Override: ONLY when enabled AND position is actually customized
+    // Default 'bottom-center' (50%, 88%) is YouTube's natural native position - leave untouched!
+    const isCustomPosition = (posX !== 50 || posY !== 88);
+    const isNonDefaultPreset = preset && preset !== 'bottom-center';
+
+    if (enabled && (isCustomPosition || isNonDefaultPreset)) {
+      let posRules = '';
+      if (preset === 'top-center') {
+        posRules = `
+          left: 50% !important;
+          top: 10% !important;
+          bottom: auto !important;
+          transform: translateX(-50%) !important;
+        `;
+      } else if (preset === 'top-black-bar') {
+        posRules = `
+          left: 50% !important;
+          top: 3% !important;
+          bottom: auto !important;
+          transform: translateX(-50%) !important;
+        `;
+      } else if (preset === 'bottom-black-bar') {
+        posRules = `
+          left: 50% !important;
+          top: auto !important;
+          bottom: 2% !important;
+          transform: translateX(-50%) !important;
+        `;
+      } else {
+        // Custom user drag coordinates
+        posRules = `
           left: ${posX}% !important;
           top: ${posY}% !important;
           bottom: auto !important;
+          transform: translate(-50%, -50%) !important;
+        `;
+      }
+
+      css += `
+        .caption-window,
+        .caption-window.ytp-caption-window-bottom,
+        .caption-window.ytp-caption-window-rollup {
+          position: absolute !important;
+          ${posRules}
           right: auto !important;
           margin: 0 !important;
-          transform: translate(-50%, -50%) !important;
           width: auto !important;
           max-width: 90% !important;
           text-align: center !important;
+          z-index: 9999 !important;
           cursor: grab !important;
         }
       `;
     } else {
-      // Revert inline styles on caption windows when disabled
-      document.querySelectorAll('.caption-window, .player-timedtext-text-container').forEach(el => {
-        if (el.style.left && el.style.left.includes('%')) el.style.left = '';
-        if (el.style.top && el.style.top.includes('%')) el.style.top = '';
-        if (el.style.transform && el.style.transform.includes('translate')) el.style.transform = '';
+      // Revert style overrides when on natural default
+      document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup').forEach(el => {
+        el.style.removeProperty('left');
+        el.style.removeProperty('top');
+        el.style.removeProperty('bottom');
+        el.style.removeProperty('transform');
+        el.style.removeProperty('position');
+        el.style.removeProperty('z-index');
       });
     }
 
-    if (!enabled && brightness === 100) {
-      subtitleStyleTag.textContent = '';
-    } else {
-      subtitleStyleTag.textContent = css;
-    }
+    subtitleStyleTag.textContent = css;
   }
 
   function toggleDimmer() {
@@ -858,10 +902,11 @@
     if (prof.subPosition) {
       state.subtitles.preset = prof.subPosition;
       state.subtitles.enabled = true;
-      if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 12; }
+      if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 10; }
       else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
-      else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 96; }
-      else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 4; }
+      else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 98; }
+      else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 3; }
+      ensureYouTubeCCActive();
     } else if (prof.subEnabled !== undefined) {
       state.subtitles.enabled = Boolean(prof.subEnabled);
     }
@@ -922,6 +967,7 @@
     state.youtube.autoTheater = false;
     state.youtube.hideShorts = false;
 
+    ensureYouTubeCCActive();
     showToast('↺ VeloxCine: Subtitles & Settings Reset to Defaults');
   }
 
