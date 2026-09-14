@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - VeloxCine™ by StratumForge Labs™</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .legal-content {
+      max-width: 800px;
+      margin: 60px auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 40px;
+      border-radius: var(--radius);
+    }
+    .legal-content h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
+    .legal-content h2 { font-size: 18px; margin: 24px 0 8px; color: var(--cyan); }
+    .legal-content p, .legal-content li { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+    .legal-content ul { padding-left: 20px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="brand" style="text-decoration:none;">
+        <span class="brand-name">Velox<span>Cine</span>™</span>
+      </a>
+      <a href="index.html" class="btn btn-nav">Back to Home</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="legal-content">
+      <h1>Privacy Policy</h1>
+      <p><strong>Effective Date:</strong> September 14, 2026 | <strong>Developer:</strong> StratumForge Labs™ (forgestratum@gmail.com)</p>
+
+      <h2>1. Overview</h2>
+      <p>VeloxCine™ ("we", "our", or "the extension") is developed by StratumForge Labs™. We are committed to protecting your privacy. This Privacy Policy discloses what data is accessed, how it is used, and how your privacy is safeguarded.</p>
+
+      <h2>2. Data Collection and Usage</h2>
+      <p>VeloxCine operates on a <strong>privacy-first, client-side architecture</strong>:</p>
+      <ul>
+        <li><strong>No Personal Data Collection:</strong> We do not track, collect, store, or transmit your browsing history, media watch history, keystrokes, passwords, or personal communications.</li>
+        <li><strong>Google Account (Gmail):</strong> If you purchase a Lifetime License, your signed-in Google account email is accessed locally via the Chrome Identity API (<code>chrome.identity</code>) strictly to verify your active purchase entitlement. Your email is never sold, shared, or used for unsolicited marketing.</li>
+        <li><strong>Local Storage:</strong> Your preferences (subtitle styling, font size, dimmer levels, and aspect ratio choices) are stored locally on your device via <code>chrome.storage.local</code>.</li>
+      </ul>
+
+      <h2>3. Permissions Justification</h2>
+      <ul>
+        <li><strong>Storage:</strong> Used solely to remember your custom subtitle and player preferences across browser sessions.</li>
+        <li><strong>Tabs & Scripting:</strong> Used strictly to inject the video controller HUD and subtitle styling when you actively open supported streaming platforms.</li>
+        <li><strong>Identity:</strong> Used exclusively to check your Lifetime Premium license entitlement linked to your Google Account.</li>
+      </ul>
+
+      <h2>4. Third-Party Services</h2>
+      <p>VeloxCine does not sell data to data brokers, advertising networks, or unauthorized third parties. All video processing, transforms, and subtitle rendering happen entirely within your local browser sandbox.</p>
+
+      <h2>5. Contact Us</h2>
+      <p>If you have any questions regarding this privacy policy, please contact us at: <a href="mailto:forgestratum@gmail.com" style="color:var(--cyan);">forgestratum@gmail.com</a></p>
+    </div>
+  </div>
+</body>
+</html>
