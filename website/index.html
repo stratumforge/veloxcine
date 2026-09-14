@@ -310,6 +310,18 @@
         <p class="section-desc">No recurring subscriptions. One lifetime purchase tied to your Gmail account.</p>
       </div>
 
+      <!-- Geolocation Currency Bar & Anti-VPN Verification Notice -->
+      <div class="pricing-region-banner" id="pricing-region-banner">
+        <div class="region-detected">
+          <span class="region-icon" id="region-flag">🇮🇳</span>
+          <span class="region-text" id="region-status">Detecting regional pricing...</span>
+        </div>
+        <div class="currency-toggle">
+          <button class="curr-btn active" id="btn-inr" onclick="setCurrency('INR', true)">🇮🇳 INR (₹399)</button>
+          <button class="curr-btn" id="btn-usd" onclick="setCurrency('USD', true)">🌐 USD ($12.99)</button>
+        </div>
+      </div>
+
       <div class="pricing-grid">
         <!-- Free Tier Card -->
         <div class="pricing-card">
@@ -319,37 +331,58 @@
             <p class="tier-desc">Essential streaming enhancement for everyone.</p>
           </div>
           <ul class="perks-list">
-            <li>âœ“ Standard Skip-Ad Auto-Clicker</li>
-            <li>âœ“ 16:9 Crop and Fit-to-Window</li>
-            <li>âœ“ Basic Subtitle Font Size & 3 Colors</li>
-            <li>âœ“ Fixed Bottom-Center Position</li>
-            <li class="disabled">âœ• 16x Hyper-Warp Acceleration</li>
-            <li class="disabled">âœ• Freeform Drag-to-Position</li>
-            <li class="disabled">âœ• OLED / HDR Subtitle Dimmer</li>
-            <li class="disabled">âœ• External SRT/VTT Subtitle Injector</li>
+            <li>✓ Standard Skip-Ad Auto-Clicker</li>
+            <li>✓ 16:9 Crop and Fit-to-Window</li>
+            <li>✓ Basic Subtitle Font Size & 3 Colors</li>
+            <li>✓ Fixed Bottom-Center Position</li>
+            <li class="disabled">✕ 16x Hyper-Warp Acceleration</li>
+            <li class="disabled">✕ Freeform Drag-to-Position</li>
+            <li class="disabled">✕ OLED / HDR Subtitle Dimmer</li>
+            <li class="disabled">✕ External SRT/VTT Subtitle Injector</li>
           </ul>
           <a href="#download" class="btn btn-outline">Install Free</a>
         </div>
 
         <!-- Lifetime Pro Card -->
         <div class="pricing-card popular">
-          <div class="popular-badge">MOST POPULAR â€¢ LIFETIME ACCESS</div>
+          <div class="popular-badge" id="popular-badge">BEST VALUE • ONE-TIME PURCHASE</div>
           <div class="card-header">
-            <span class="tier-name">VeloxCineâ„¢ Lifetime Pro</span>
-            <div class="price">$14.99 <span>One-Time Fee</span></div>
-            <p class="tier-desc">Tied to your Gmail account. Works across all your devices.</p>
+            <span class="tier-name">VeloxCine™ Lifetime Pro</span>
+            <div class="price" id="pro-price-display">
+              <span class="price-val">₹399</span>
+              <span class="price-period">Lifetime License</span>
+            </div>
+            <p class="tier-desc" id="pro-payment-desc">
+              Instant activation with UPI (Google Pay, PhonePe, Paytm) & RuPay.
+            </p>
           </div>
           <ul class="perks-list">
-            <li>âš¡ <strong>16x Hyper-Warp Ad-Skipper & Auto-Mute</strong></li>
-            <li>ðŸŽ¯ <strong>Freeform Drag & Drop Subtitles anywhere</strong></li>
-            <li>ðŸ‘ï¸ <strong>OLED / HDR Subtitle Dimmer (0%â€“100%)</strong></li>
-            <li>ðŸ“‚ <strong>Unlimited External Subtitle (.SRT/.VTT) Loader</strong></li>
-            <li>ðŸ“ <strong>21:9 Ultrawide Eliminator & Custom Zoom</strong></li>
-            <li>âœ¨ <strong>GPU Super-Resolution Sharpening Shader</strong></li>
-            <li>ðŸŽ™ï¸ <strong>600% Speech Dialogue & Audio Booster</strong></li>
-            <li>ðŸ“º <strong>Free Access to Upcoming Android TV / Fire TV APK</strong></li>
+            <li>⚡ <strong>16x Hyper-Warp Ad-Skipper & Auto-Mute</strong></li>
+            <li>🎯 <strong>Freeform Drag & Drop Subtitles anywhere</strong></li>
+            <li>👁️ <strong>OLED / HDR Subtitle Dimmer (0%–100%)</strong></li>
+            <li>📂 <strong>Unlimited External Subtitle (.SRT/.VTT) Loader</strong></li>
+            <li>📐 <strong>21:9 Ultrawide Eliminator & Custom Zoom</strong></li>
+            <li>✨ <strong>GPU Super-Resolution Sharpening Shader</strong></li>
+            <li>🎙️ <strong>600% Speech Dialogue & Audio Booster</strong></li>
+            <li>📺 <strong>Free Access to Upcoming Android TV / Fire TV APK</strong></li>
           </ul>
-          <a href="#download" class="btn btn-primary btn-block">Get Lifetime License</a>
+          <a href="#download" class="btn btn-primary btn-block" id="btn-pro-checkout">
+            <span id="btn-pro-checkout-text">Pay ₹399 with UPI</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Anti-VPN and Arbitrage Policy Note -->
+      <div class="vpn-notice-box" id="vpn-notice">
+        <div class="vpn-notice-content">
+          <span class="vpn-shield-icon">🛡️</span>
+          <div class="vpn-text">
+            <strong>Payment Security & Anti-Arbitrage Protection:</strong>
+            <p id="vpn-details-text">
+              The domestic ₹399 INR tier is exclusively authenticated through the Indian UPI Network (NPCI) and domestic RuPay cards. 
+              Non-Indian cards or VPN-proxied international payments are automatically routed to the standard $12.99 USD checkout.
+            </p>
+          </div>
         </div>
       </div>
     </div>
