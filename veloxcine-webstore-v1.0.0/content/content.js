@@ -662,12 +662,14 @@
 
     let css = '';
 
-    // 1. Subtitle Dimmer (OLED / Eye-Saver): ONLY targets text segments
+    // 1. Subtitle Dimmer (OLED / Eye-Saver): targets text segments across YouTube, Prime Video, Shaka
     if (b < 100) {
       const opacityVal = (b / 100).toFixed(2);
       const filterVal = `brightness(${b}%)`;
       css += `
         .ytp-caption-segment,
+        .atvwebplayersdk-captions-text,
+        span.atvwebplayersdk-captions-text,
         .atvwebplayersdk-subtitle-text,
         .shaka-text-container span {
           opacity: ${opacityVal} !important;
@@ -677,7 +679,20 @@
       `;
     }
 
-    // 2. Position Rules: Always accurate on both X and Y axis
+    // 2. Subtitle Font Color
+    if (state.subtitles.fontColor) {
+      css += `
+        .ytp-caption-segment,
+        .atvwebplayersdk-captions-text,
+        span.atvwebplayersdk-captions-text,
+        .atvwebplayersdk-subtitle-text,
+        .shaka-text-container span {
+          color: ${state.subtitles.fontColor} !important;
+        }
+      `;
+    }
+
+    // 3. Position Rules: Always accurate on both X and Y axis across YouTube, Prime Video & generic players
     if (enabled) {
       let posRules = '';
 
@@ -711,7 +726,7 @@
           transform: translateX(-50%) !important;
         `;
       } else {
-        // 'bottom-center' (YouTube Default Position): Centered horizontally, anchored at bottom above controls
+        // 'bottom-center' (Default Position): Centered horizontally, anchored at bottom above controls
         posRules = `
           left: 50% !important;
           bottom: 8% !important;
@@ -723,7 +738,9 @@
       css += `
         .caption-window,
         .caption-window.ytp-caption-window-bottom,
-        .caption-window.ytp-caption-window-rollup {
+        .caption-window.ytp-caption-window-rollup,
+        .atvwebplayersdk-captions-overlay > div,
+        div[class*="captions-overlay"] > div {
           position: absolute !important;
           ${posRules}
           right: auto !important;
@@ -733,9 +750,18 @@
           text-align: center !important;
           z-index: 9999 !important;
           cursor: grab !important;
+          pointer-events: auto !important;
         }
-        .caption-window:active {
+        .caption-window:active,
+        .atvwebplayersdk-captions-overlay > div:active,
+        div[class*="captions-overlay"] > div:active,
+        .atvwebplayersdk-captions-text:active {
           cursor: grabbing !important;
+        }
+        .atvwebplayersdk-captions-overlay,
+        .atvwebplayersdk-captions-text {
+          cursor: grab !important;
+          pointer-events: auto !important;
         }
       `;
     }
@@ -975,8 +1001,26 @@
     let grabOffsetY = 0;
 
     function onDragStart(e) {
-      const captionWindow = e.target.closest('.caption-window, .player-timedtext, #caption-window-1');
-      if (!captionWindow) return;
+      const captionTarget = e.target.closest(`
+        .caption-window,
+        .player-timedtext,
+        #caption-window-1,
+        .atvwebplayersdk-captions-overlay > div,
+        div[class*="captions-overlay"] > div,
+        .atvwebplayersdk-captions-overlay,
+        div[class*="captions-overlay"],
+        .atvwebplayersdk-captions-text,
+        .shaka-text-container
+      `);
+      if (!captionTarget) return;
+
+      const captionWindow = captionTarget.closest(`
+        .caption-window,
+        .atvwebplayersdk-captions-overlay > div,
+        div[class*="captions-overlay"] > div,
+        .atvwebplayersdk-captions-overlay,
+        div[class*="captions-overlay"]
+      `) || captionTarget;
 
       const boxRect = captionWindow.getBoundingClientRect();
       grabOffsetX = e.clientX - boxRect.left;
@@ -993,6 +1037,7 @@
     function onDragMove(e) {
       if (!isDragging) return;
       const player = (state.activeVideo ? state.activeVideo.parentElement : null) ||
+                     document.querySelector('.atvwebplayersdk-overlays-container, .rendererContainer, .webPlayerUIContainer') ||
                      document.getElementById('movie_player') ||
                      document.querySelector('.html5-video-player') ||
                      document.body;
@@ -1093,6 +1138,9 @@
     if (prof.brightness !== undefined) {
       state.subtitles.brightness = parseInt(prof.brightness, 10);
     }
+    if (prof.subColor) {
+      state.subtitles.fontColor = prof.subColor;
+    }
     injectSubtitleStyles();
 
     if (prof.adWarpEnabled !== undefined) state.adWarp.enabled = prof.adWarpEnabled;
@@ -1122,10 +1170,19 @@
     state.subtitles.posX = 50;
     state.subtitles.posY = 88;
     state.subtitles.brightness = 100;
+    state.subtitles.fontColor = '#ffffff';
     injectSubtitleStyles();
 
-    // Clear element inline overrides so CSS rules take cleanly
-    document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup').forEach(el => {
+    // Clear element inline overrides so CSS rules take cleanly across YouTube and Prime Video
+    document.querySelectorAll(`
+      .caption-window,
+      .ytp-caption-window-bottom,
+      .ytp-caption-window-rollup,
+      .atvwebplayersdk-captions-overlay,
+      .atvwebplayersdk-captions-overlay > div,
+      div[class*="captions-overlay"] > div,
+      .atvwebplayersdk-captions-text
+    `).forEach(el => {
       el.style.left = '';
       el.style.top = '';
       el.style.bottom = '';
@@ -1134,6 +1191,7 @@
       el.style.margin = '';
       el.style.opacity = '';
       el.style.filter = '';
+      el.style.color = '';
     });
     window.dispatchEvent(new Event('resize'));
 

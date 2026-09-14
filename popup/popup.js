@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selAspect = document.getElementById('sel-aspect');
   const selSubPos = document.getElementById('sel-sub-pos');
   const selDimmer = document.getElementById('sel-dimmer');
+  const selSubColor = document.getElementById('sel-sub-color');
   const chkAdwarp = document.getElementById('chk-adwarp');
   const chkBinge = document.getElementById('chk-binge');
   const chkYtTheater = document.getElementById('chk-yt-theater');
@@ -180,6 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (selAspect) selAspect.value = prof.defaultAspect || prof.customAspect || 'original';
     if (selSubPos) selSubPos.value = (prof.subPosition && !prof.subPosition.includes('%')) ? prof.subPosition : 'bottom-center';
     if (prof.brightness !== undefined && selDimmer) selDimmer.value = String(prof.brightness);
+    if (selSubColor) selSubColor.value = prof.subColor || '#ffffff';
 
     if (prof.adWarpEnabled !== undefined && chkAdwarp) chkAdwarp.checked = prof.adWarpEnabled;
     if (prof.bingeEnabled !== undefined && chkBinge) chkBinge.checked = prof.bingeEnabled;
@@ -208,6 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentAspect = selAspect ? selAspect.value : 'original';
     const currentSubPos = selSubPos ? selSubPos.value : 'bottom-center';
     const currentBrightness = selDimmer ? parseInt(selDimmer.value, 10) : 100;
+    const currentSubColor = selSubColor ? selSubColor.value : '#ffffff';
 
     const update = {
       aspectEnabled: currentAspect !== 'original',
@@ -215,6 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       customAspect: currentAspect,
       subEnabled: true,
       subPosition: currentSubPos,
+      subColor: currentSubColor,
       adWarpEnabled: chkAdwarp ? chkAdwarp.checked : true,
       bingeEnabled: chkBinge ? chkBinge.checked : true,
       ytTheater: chkYtTheater ? chkYtTheater.checked : false,
@@ -236,6 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (selAspect) selAspect.addEventListener('change', saveCurrentPlatformSettings);
   if (selSubPos) selSubPos.addEventListener('change', saveCurrentPlatformSettings);
   if (selDimmer) selDimmer.addEventListener('change', saveCurrentPlatformSettings);
+  if (selSubColor) selSubColor.addEventListener('change', saveCurrentPlatformSettings);
   if (chkAdwarp) chkAdwarp.addEventListener('change', saveCurrentPlatformSettings);
   if (chkBinge) chkBinge.addEventListener('change', saveCurrentPlatformSettings);
   if (chkYtTheater) chkYtTheater.addEventListener('change', saveCurrentPlatformSettings);
@@ -297,6 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (selAspect) selAspect.value = 'original';
       if (selSubPos) selSubPos.value = 'bottom-center';
       if (selDimmer) selDimmer.value = '100';
+      if (selSubColor) selSubColor.value = '#ffffff';
       if (chkAdwarp) chkAdwarp.checked = true;
       if (chkBinge) chkBinge.checked = true;
       if (chkYtTheater) chkYtTheater.checked = false;
@@ -310,6 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         subPosition: 'bottom-center',
         subCustomX: null,
         subCustomY: null,
+        subColor: '#ffffff',
         adWarpEnabled: true,
         bingeEnabled: true,
         brightness: 100,
