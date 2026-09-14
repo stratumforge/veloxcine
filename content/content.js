@@ -592,29 +592,65 @@
 
     // If Aspect Ratio Override is NOT enabled, reset to natural original
     if (!state.aspect.enabled || state.aspect.mode === 'original') {
-      video.style.transform = '';
-      video.style.objectFit = '';
-      video.style.transition = '';
+      if (state.detectedPlatform === 'prime') {
+        video.style.removeProperty('transform');
+        video.style.removeProperty('object-fit');
+        video.style.removeProperty('width');
+        video.style.removeProperty('height');
+        video.style.removeProperty('top');
+        video.style.removeProperty('left');
+        video.style.removeProperty('transition');
+      } else {
+        video.style.transform = '';
+        video.style.objectFit = '';
+        video.style.transition = '';
+      }
       return;
     }
 
     video.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), object-fit 0.25s ease';
 
     const mode = state.aspect.mode;
-    if (mode === 'ultrawide') {
-      video.style.objectFit = 'cover';
-      video.style.transform = 'scale(1.334)';
-    } else if (mode === 'crop169') {
-      video.style.objectFit = 'cover';
-      video.style.transform = 'scale(1.18)';
-    } else if (mode === 'stretch') {
-      video.style.objectFit = 'fill';
-      video.style.transform = 'none';
-    } else if (mode === 'custom') {
-      const scale = state.aspect.customZoom / 100;
-      const panY = state.aspect.panY || 0;
-      video.style.objectFit = 'cover';
-      video.style.transform = `scale(${scale}) translateY(${panY}%)`;
+    if (state.detectedPlatform === 'prime') {
+      const surf = video.closest('.atvwebplayersdk-video-surface') || video.parentElement;
+      if (surf) surf.style.setProperty('overflow', 'hidden', 'important');
+
+      if (mode === 'stretch') {
+        video.style.setProperty('top', '0px', 'important');
+        video.style.setProperty('left', '0px', 'important');
+        video.style.setProperty('width', '100%', 'important');
+        video.style.setProperty('height', '100%', 'important');
+        video.style.setProperty('object-fit', 'fill', 'important');
+        video.style.setProperty('transform', 'none', 'important');
+      } else if (mode === 'ultrawide') {
+        video.style.setProperty('object-fit', 'cover', 'important');
+        video.style.setProperty('transform', 'scale(1.334)', 'important');
+      } else if (mode === 'crop169') {
+        video.style.setProperty('object-fit', 'cover', 'important');
+        video.style.setProperty('transform', 'scale(1.18)', 'important');
+      } else if (mode === 'custom') {
+        const scale = state.aspect.customZoom / 100;
+        const panY = state.aspect.panY || 0;
+        video.style.setProperty('object-fit', 'cover', 'important');
+        video.style.setProperty('transform', `scale(${scale}) translateY(${panY}%)`, 'important');
+      }
+    } else {
+      // YouTube and other platforms: EXACT original untouched code from accepted version
+      if (mode === 'ultrawide') {
+        video.style.objectFit = 'cover';
+        video.style.transform = 'scale(1.334)';
+      } else if (mode === 'crop169') {
+        video.style.objectFit = 'cover';
+        video.style.transform = 'scale(1.18)';
+      } else if (mode === 'stretch') {
+        video.style.objectFit = 'fill';
+        video.style.transform = 'none';
+      } else if (mode === 'custom') {
+        const scale = state.aspect.customZoom / 100;
+        const panY = state.aspect.panY || 0;
+        video.style.objectFit = 'cover';
+        video.style.transform = `scale(${scale}) translateY(${panY}%)`;
+      }
     }
   }
 

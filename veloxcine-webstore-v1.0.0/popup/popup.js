@@ -174,6 +174,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   async function loadPlatformSettings(platform) {
+    // Hide YouTube options strictly within Prime tab
+    const rowYtTheater = document.getElementById('row-yt-theater');
+    const rowYtShorts = document.getElementById('row-yt-shorts');
+    if (rowYtTheater && rowYtShorts) {
+      const isPrime = (platform === 'prime');
+      rowYtTheater.style.display = isPrime ? 'none' : 'flex';
+      rowYtShorts.style.display = isPrime ? 'none' : 'flex';
+    }
+
     const data = await chrome.storage.local.get('veloxcine_settings');
     const settings = data.veloxcine_settings || {};
     const prof = platform === 'global' ? (settings.global || {}) : (settings.profiles?.[platform] || {});
