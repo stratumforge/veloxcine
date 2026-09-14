@@ -1,0 +1,460 @@
+/* VeloxCine™ Popup Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+:root {
+  --vc-bg: #090c15;
+  --vc-surface: #121726;
+  --vc-surface-hover: #1c2236;
+  --vc-border: rgba(255, 255, 255, 0.08);
+  --vc-accent: #00e5ff;
+  --vc-accent-glow: rgba(0, 229, 255, 0.3);
+  --vc-purple: #8b5cf6;
+  --vc-gold: #fbbf24;
+  --vc-text: #f8fafc;
+  --vc-text-dim: #94a3b8;
+  --vc-radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 360px;
+  background-color: var(--vc-bg);
+  color: var(--vc-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+.vc-container {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.vc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vc-border);
+}
+
+.vc-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vc-logo {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 229, 255, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.vc-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fff;
+}
+
+.vc-title span {
+  color: var(--vc-accent);
+}
+
+.vc-byline {
+  font-size: 10px;
+  color: var(--vc-text-dim);
+  font-weight: 500;
+}
+
+.vc-badge-tier {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.vc-badge-tier.premium {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+/* Cards */
+.vc-card {
+  background: var(--vc-surface);
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Account Card */
+.vc-account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vc-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--vc-text-dim);
+  letter-spacing: 0.5px;
+}
+
+.vc-email {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-btn-upgrade {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #000;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.vc-btn-upgrade:hover {
+  transform: scale(1.04);
+}
+
+/* Developer Mock Toggle */
+.vc-dev-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.vc-dev-label {
+  color: var(--vc-gold);
+  font-weight: 600;
+}
+
+.vc-dev-state {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* License Row */
+.vc-license-row {
+  display: flex;
+  gap: 6px;
+}
+
+.vc-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--vc-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 11px;
+  outline: none;
+}
+
+.vc-input:focus {
+  border-color: var(--vc-accent);
+}
+
+.vc-msg {
+  font-size: 10px;
+  min-height: 14px;
+}
+
+.vc-msg.success { color: #10b981; }
+.vc-msg.error { color: #ef4444; }
+
+/* Status Card */
+.vc-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vc-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+}
+
+.vc-status-indicator.active {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.vc-status-text {
+  font-size: 11px;
+  color: var(--vc-text-dim);
+}
+
+.vc-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.vc-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vc-border);
+  color: var(--vc-text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.vc-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.vc-btn-secondary {
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--vc-accent);
+  border-color: rgba(0, 229, 255, 0.3);
+}
+
+.vc-btn-secondary:hover {
+  background: rgba(0, 229, 255, 0.2);
+}
+
+/* Platform Card & Tabs */
+.vc-platform-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--vc-border);
+  padding-bottom: 6px;
+}
+
+.vc-ptab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--vc-text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vc-ptab:hover {
+  color: #fff;
+}
+
+.vc-ptab.active {
+  color: var(--vc-accent);
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.vc-platform-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vc-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.vc-select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--vc-border);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  outline: none;
+  max-width: 170px;
+}
+
+/* Switch */
+.vc-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.vc-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.vc-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  transition: 0.2s;
+}
+
+.vc-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+input:checked + .vc-slider {
+  background-color: var(--vc-accent);
+}
+
+input:checked + .vc-slider:before {
+  transform: translateX(14px);
+  background-color: #000;
+}
+
+/* Footer */
+.vc-btn-playground {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(139, 92, 246, 0.2));
+  border: 1px solid var(--vc-accent);
+  color: #fff;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: var(--vc-radius);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.vc-btn-playground:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(139, 92, 246, 0.35));
+  box-shadow: 0 4px 20px var(--vc-accent-glow);
+}
+
+/* Upgrade Modal */
+.vc-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.vc-modal {
+  background: #121726;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.vc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vc-modal-header h3 {
+  font-size: 14px;
+  color: var(--vc-gold);
+}
+
+.vc-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--vc-text-dim);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.vc-modal-desc {
+  font-size: 11px;
+  color: var(--vc-text-dim);
+}
+
+.vc-perks-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.vc-price-tag {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.vc-price-tag span {
+  font-size: 11px;
+  color: var(--vc-gold);
+  display: block;
+}
+
+.vc-btn-checkout {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #000;
+  font-weight: 700;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}

@@ -1,0 +1,518 @@
+/* VeloxCine™ Universal Streaming & Subtitle Suite - Injected Overlay Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --velox-bg: rgba(13, 16, 26, 0.88);
+  --velox-card: rgba(23, 28, 44, 0.75);
+  --velox-border: rgba(255, 255, 255, 0.12);
+  --velox-accent: #00e5ff;
+  --velox-accent-glow: rgba(0, 229, 255, 0.35);
+  --velox-purple: #8b5cf6;
+  --velox-text: #f1f5f9;
+  --velox-text-muted: #94a3b8;
+  --velox-gold: #fbbf24;
+  --velox-green: #10b981;
+  --velox-font: 'Inter', system-ui, -apple-system, sans-serif;
+  --velox-radius: 12px;
+}
+
+/* Base HUD Root Container */
+#veloxcine-hud-root {
+  position: fixed;
+  z-index: 2147483645;
+  font-family: var(--velox-font);
+  color: var(--velox-text);
+  pointer-events: none; /* children enable pointer events */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+#veloxcine-hud-root * {
+  box-sizing: border-box;
+}
+
+/* Floating Trigger Icon / Pill */
+.velox-floating-trigger {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--velox-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--velox-border);
+  padding: 8px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.velox-floating-trigger:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--velox-accent);
+  box-shadow: 0 10px 30px var(--velox-accent-glow);
+}
+
+.velox-trigger-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.velox-trigger-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #ffffff 30%, var(--velox-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.velox-trigger-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.velox-badge-premium {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+}
+
+.velox-badge-free {
+  background: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+/* Floating HUD Main Panel */
+.velox-panel {
+  position: absolute;
+  top: 70px;
+  right: 24px;
+  width: 360px;
+  max-height: calc(100vh - 100px);
+  background: var(--velox-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--velox-border);
+  border-radius: var(--velox-radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+.velox-panel.velox-hidden {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  pointer-events: none;
+}
+
+/* Panel Header */
+.velox-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--velox-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.velox-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.velox-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.velox-brand-name span {
+  color: var(--velox-accent);
+}
+
+.velox-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.velox-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--velox-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.velox-icon-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Navigation Tabs */
+.velox-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--velox-border);
+  padding: 4px;
+}
+
+.velox-tab {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--velox-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.velox-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.velox-tab.active {
+  color: var(--velox-accent);
+  background: rgba(0, 229, 255, 0.12);
+}
+
+/* Tab Content Areas */
+.velox-tab-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+.velox-tab-pane {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.velox-tab-pane.active {
+  display: flex;
+}
+
+/* Control Group / Cards */
+.velox-group {
+  background: var(--velox-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.velox-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--velox-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.velox-badge-mini {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--velox-gold);
+}
+
+/* Buttons and Grids */
+.velox-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.velox-btn-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.velox-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--velox-text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.velox-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.velox-btn.active {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--velox-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.velox-btn-primary {
+  background: linear-gradient(135deg, #00e5ff 0%, #0099ff 100%);
+  color: #000;
+  font-weight: 700;
+  border: none;
+}
+
+.velox-btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 15px var(--velox-accent-glow);
+}
+
+/* Slider Controls */
+.velox-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.velox-slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--velox-text-muted);
+}
+
+.velox-slider-value {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--velox-accent);
+  font-weight: 600;
+}
+
+.velox-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.velox-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--velox-accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--velox-accent);
+  transition: transform 0.15s;
+}
+
+.velox-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+/* Color Palette Selector */
+.velox-color-palette {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.velox-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.velox-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.velox-color-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Draggable Subtitle Anchor Container */
+#veloxcine-subtitle-anchor {
+  position: absolute;
+  z-index: 2147483640;
+  pointer-events: auto;
+  cursor: grab;
+  padding: 6px 12px;
+  border: 1px dashed rgba(0, 229, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  user-select: none;
+  transition: border-color 0.2s, background 0.2s;
+  min-width: 180px;
+}
+
+#veloxcine-subtitle-anchor:active {
+  cursor: grabbing;
+}
+
+#veloxcine-subtitle-anchor:hover,
+#veloxcine-subtitle-anchor.dragging {
+  border-color: var(--velox-accent);
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 15px var(--velox-accent-glow);
+}
+
+.velox-anchor-handle {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--velox-accent);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+#veloxcine-subtitle-anchor:hover .velox-anchor-handle,
+#veloxcine-subtitle-anchor.dragging .velox-anchor-handle {
+  opacity: 1;
+}
+
+/* Custom Subtitle Text Element */
+.velox-custom-sub-text {
+  font-family: inherit;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  display: inline-block;
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+/* Toast Notifications */
+.velox-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--velox-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--velox-accent);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px var(--velox-accent-glow);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.velox-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* File Drop Zone for Subtitles */
+.velox-file-drop {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--velox-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.velox-file-drop:hover,
+.velox-file-drop.dragover {
+  border-color: var(--velox-accent);
+  color: #fff;
+  background: rgba(0, 229, 255, 0.08);
+}
+
+/* Lock overlay for premium features */
+.velox-premium-locked {
+  position: relative;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.velox-premium-locked * {
+  pointer-events: none !important;
+}
+
+.velox-premium-locked::after {
+  content: '🔒 Premium Feature';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--velox-gold);
+  border: 1px solid var(--velox-gold);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  cursor: pointer;
+}
