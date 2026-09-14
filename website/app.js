@@ -106,3 +106,26 @@ document.addEventListener('DOMContentLoaded', () => {
     simAdOverlay.classList.remove('show');
   });
 });
+
+// Lightbox helper functions
+window.openLightbox = function(src) {
+  const modal = document.getElementById('lightbox-modal');
+  const img = document.getElementById('lightbox-img');
+  if (modal && img) {
+    img.src = src;
+    modal.classList.add('active');
+  }
+};
+
+window.closeLightbox = function() {
+  const modal = document.getElementById('lightbox-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    window.closeLightbox();
+  }
+});

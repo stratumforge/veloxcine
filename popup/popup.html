@@ -35,7 +35,7 @@
       <div class="vc-account-header">
         <div class="vc-account-info">
           <div class="vc-label">CONNECTED GMAIL</div>
-          <div class="vc-email" id="user-email">guest@veloxcine.app</div>
+          <div class="vc-email" id="user-email">forgestratum@gmail.com</div>
         </div>
         <button class="vc-btn-upgrade" id="btn-upgrade">Get Lifetime</button>
       </div>
@@ -70,14 +70,14 @@
       </div>
     </section>
 
-    <!-- Platform Settings Tabs -->
+    <!-- Platform Settings Tabs (Netflix, Prime, Hotstar, YouTube, Global) -->
     <section class="vc-card vc-platform-card">
       <div class="vc-platform-tabs">
         <button class="vc-ptab active" data-platform="global">Global</button>
         <button class="vc-ptab" data-platform="netflix">Netflix</button>
         <button class="vc-ptab" data-platform="prime">Prime</button>
         <button class="vc-ptab" data-platform="hotstar">Hotstar</button>
-        <button class="vc-ptab" data-platform="appletv">Apple TV+</button>
+        <button class="vc-ptab" data-platform="youtube">YouTube</button>
       </div>
 
       <div class="vc-platform-pane" id="platform-pane">
@@ -100,9 +100,25 @@
         </div>
 
         <div class="vc-setting-row">
-          <label>Silent Auto-Mute during Ads</label>
+          <label>Binge Mode (Auto-Skip Intros/Recaps)</label>
           <label class="vc-switch">
-            <input type="checkbox" id="chk-automute" checked>
+            <input type="checkbox" id="chk-binge" checked>
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>YouTube Auto-Theater Mode</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-yt-theater">
+            <span class="vc-slider"></span>
+          </label>
+        </div>
+
+        <div class="vc-setting-row">
+          <label>Hide YouTube Shorts Shelf</label>
+          <label class="vc-switch">
+            <input type="checkbox" id="chk-yt-shorts">
             <span class="vc-slider"></span>
           </label>
         </div>
@@ -136,7 +152,7 @@
       </div>
       <div class="vc-modal-body">
         <p class="vc-modal-desc">
-          One-time payment forever. Tied to your Gmail account. Works across all your browsers and upcoming Android TV / Fire TV apps.
+          One-time payment forever. Tied to your Gmail account (forgestratum@gmail.com). Works across all browsers and upcoming Android TV / Fire TV apps.
         </p>
         <ul class="vc-perks-list">
           <li>⚡ 16x Hyper-Warp Ad-Skipping + Auto-Mute</li>
@@ -146,6 +162,7 @@
           <li>🖥️ 21:9 Ultrawide Black Bar Eliminator & Pan-Zoom</li>
           <li>✨ GPU Super-Resolution Sharpening Shader</li>
           <li>🔊 600% Speech Dialogue & Audio Booster</li>
+          <li>🍿 Automated Binge Mode (Skip Intros & Recaps)</li>
         </ul>
         <div class="vc-price-tag">$14.99 <span>One-Time Lifetime Fee</span></div>
         <button class="vc-btn-checkout" id="btn-checkout">Unlock Lifetime License</button>
