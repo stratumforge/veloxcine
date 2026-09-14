@@ -308,11 +308,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         customAspect: 'original',
         subEnabled: true,
         subPosition: 'bottom-center',
+        subCustomX: null,
+        subCustomY: null,
         adWarpEnabled: true,
         bingeEnabled: true,
-        ytTheater: false,
-        ytShorts: false,
-        brightness: 100
+        brightness: 100,
+        audioBoost: 100
       };
 
       const defaultSettings = {

@@ -28,7 +28,8 @@
       panY: 0
     },
     subtitles: {
-      enabled: false,
+      enabled: true,
+      isCustomDrag: false,
       fontSize: 24,
       fontColor: '#ffffff',
       brightness: 100,
@@ -496,12 +497,12 @@
       (document.head || document.documentElement).appendChild(subtitleStyleTag);
     }
 
-    const { brightness, posX, posY, enabled, preset } = state.subtitles;
+    const { brightness, posX, posY, enabled, preset, isCustomDrag } = state.subtitles;
     const b = (typeof brightness === 'number' && !isNaN(brightness)) ? brightness : 100;
 
     let css = '';
 
-    // 1. Subtitle Dimmer (OLED / Eye-Saver): ONLY targets text segments, never parent containers
+    // 1. Subtitle Dimmer (OLED / Eye-Saver): ONLY targets text segments
     if (b < 100) {
       const opacityVal = (b / 100).toFixed(2);
       const filterVal = `brightness(${b}%)`;
@@ -516,41 +517,46 @@
       `;
     }
 
-    // 2. Position Override: ONLY when enabled AND position is actually customized
-    // Default 'bottom-center' (50%, 88%) is YouTube's natural native position - leave untouched!
-    const isCustomPosition = (posX !== 50 || posY !== 88);
-    const isNonDefaultPreset = preset && preset !== 'bottom-center';
-
-    if (enabled && (isCustomPosition || isNonDefaultPreset)) {
+    // 2. Position Rules: Always accurate on both X and Y axis
+    if (enabled) {
       let posRules = '';
-      if (preset === 'top-center') {
+
+      if (isCustomDrag && typeof posX === 'number' && typeof posY === 'number') {
+        // User dragged with cursor: exact top-left positioning without jump
+        posRules = `
+          left: ${posX}% !important;
+          top: ${posY}% !important;
+          bottom: auto !important;
+          transform: none !important;
+        `;
+      } else if (preset === 'top-center') {
         posRules = `
           left: 50% !important;
-          top: 10% !important;
+          top: 8% !important;
           bottom: auto !important;
           transform: translateX(-50%) !important;
         `;
       } else if (preset === 'top-black-bar') {
         posRules = `
           left: 50% !important;
-          top: 3% !important;
+          top: 2% !important;
           bottom: auto !important;
           transform: translateX(-50%) !important;
         `;
       } else if (preset === 'bottom-black-bar') {
         posRules = `
           left: 50% !important;
-          top: auto !important;
           bottom: 2% !important;
+          top: auto !important;
           transform: translateX(-50%) !important;
         `;
       } else {
-        // Custom user drag coordinates
+        // 'bottom-center' (YouTube Default Position): Centered horizontally, anchored at bottom above controls
         posRules = `
-          left: ${posX}% !important;
-          top: ${posY}% !important;
-          bottom: auto !important;
-          transform: translate(-50%, -50%) !important;
+          left: 50% !important;
+          bottom: 8% !important;
+          top: auto !important;
+          transform: translateX(-50%) !important;
         `;
       }
 
@@ -568,17 +574,10 @@
           z-index: 9999 !important;
           cursor: grab !important;
         }
+        .caption-window:active {
+          cursor: grabbing !important;
+        }
       `;
-    } else {
-      // Revert style overrides when on natural default
-      document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup').forEach(el => {
-        el.style.removeProperty('left');
-        el.style.removeProperty('top');
-        el.style.removeProperty('bottom');
-        el.style.removeProperty('transform');
-        el.style.removeProperty('position');
-        el.style.removeProperty('z-index');
-      });
     }
 
     subtitleStyleTag.textContent = css;
@@ -812,20 +811,23 @@
 
   function setupDraggableAnchor() {
     let isDragging = false;
+    let grabOffsetX = 0;
+    let grabOffsetY = 0;
 
     function onDragStart(e) {
-      const isSubTarget = e.target.closest('.caption-window') ||
-                          e.target.closest('.ytp-caption-window-bottom') ||
-                          e.target.closest('.ytp-caption-window-rollup') ||
-                          e.target.closest('.ytp-caption-segment') ||
-                          e.target.closest('.player-timedtext') ||
-                          e.target.closest('.player-timedtext-text-container');
+      const captionWindow = e.target.closest('.caption-window, .player-timedtext, #caption-window-1');
+      if (!captionWindow) return;
 
-      if (!isSubTarget) return;
+      const boxRect = captionWindow.getBoundingClientRect();
+      grabOffsetX = e.clientX - boxRect.left;
+      grabOffsetY = e.clientY - boxRect.top;
 
       state.subtitles.enabled = true;
+      state.subtitles.isCustomDrag = true;
+      state.subtitles.preset = 'custom';
       isDragging = true;
       e.preventDefault();
+      e.stopPropagation();
     }
 
     function onDragMove(e) {
@@ -834,13 +836,19 @@
                      document.getElementById('movie_player') ||
                      document.querySelector('.html5-video-player') ||
                      document.body;
-      const rect = player.getBoundingClientRect();
-      const width = rect.width > 0 ? rect.width : window.innerWidth;
-      const height = rect.height > 0 ? rect.height : window.innerHeight;
-      const pctX = Math.max(5, Math.min(95, ((e.clientX - rect.left) / width) * 100));
-      const pctY = Math.max(5, Math.min(98, ((e.clientY - rect.top) / height) * 100));
-      state.subtitles.posX = Math.round(pctX);
-      state.subtitles.posY = Math.round(pctY);
+      const playerRect = player.getBoundingClientRect();
+      const width = playerRect.width > 0 ? playerRect.width : window.innerWidth;
+      const height = playerRect.height > 0 ? playerRect.height : window.innerHeight;
+
+      // Exact top-left position minus grab offset so the box doesn't jump
+      const leftPx = e.clientX - playerRect.left - grabOffsetX;
+      const topPx = e.clientY - playerRect.top - grabOffsetY;
+
+      const pctX = Math.max(1, Math.min(85, (leftPx / width) * 100));
+      const pctY = Math.max(1, Math.min(92, (topPx / height) * 100));
+
+      state.subtitles.posX = Math.round(pctX * 10) / 10;
+      state.subtitles.posY = Math.round(pctY * 10) / 10;
       injectSubtitleStyles();
     }
 
@@ -852,21 +860,25 @@
           const s = data.veloxcine_settings || { global: {}, profiles: {} };
           s.global = s.global || {};
           s.global.subEnabled = true;
-          s.global.subPosition = `${state.subtitles.posX}%,${state.subtitles.posY}%`;
+          s.global.subPosition = 'custom';
+          s.global.subCustomX = state.subtitles.posX;
+          s.global.subCustomY = state.subtitles.posY;
           if (state.detectedPlatform !== 'generic') {
             s.profiles = s.profiles || {};
             s.profiles[state.detectedPlatform] = s.profiles[state.detectedPlatform] || {};
             s.profiles[state.detectedPlatform].subEnabled = true;
-            s.profiles[state.detectedPlatform].subPosition = s.global.subPosition;
+            s.profiles[state.detectedPlatform].subPosition = 'custom';
+            s.profiles[state.detectedPlatform].subCustomX = state.subtitles.posX;
+            s.profiles[state.detectedPlatform].subCustomY = state.subtitles.posY;
           }
           chrome.storage.local.set({ veloxcine_settings: s });
         }).catch(() => {});
       }
     }
 
-    document.addEventListener('mousedown', onDragStart);
-    window.addEventListener('mousemove', onDragMove);
-    window.addEventListener('mouseup', onDragEnd);
+    document.addEventListener('mousedown', onDragStart, true);
+    window.addEventListener('mousemove', onDragMove, true);
+    window.addEventListener('mouseup', onDragEnd, true);
   }
 
   function updateHUDControls() {
@@ -902,10 +914,17 @@
     if (prof.subPosition) {
       state.subtitles.preset = prof.subPosition;
       state.subtitles.enabled = true;
-      if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 10; }
-      else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
-      else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 98; }
-      else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 3; }
+      if (prof.subPosition === 'custom' && prof.subCustomX !== undefined && prof.subCustomY !== undefined) {
+        state.subtitles.isCustomDrag = true;
+        state.subtitles.posX = prof.subCustomX;
+        state.subtitles.posY = prof.subCustomY;
+      } else {
+        state.subtitles.isCustomDrag = false;
+        if (prof.subPosition === 'top-center') { state.subtitles.posX = 50; state.subtitles.posY = 8; }
+        else if (prof.subPosition === 'bottom-center') { state.subtitles.posX = 50; state.subtitles.posY = 88; }
+        else if (prof.subPosition === 'bottom-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 98; }
+        else if (prof.subPosition === 'top-black-bar') { state.subtitles.posX = 50; state.subtitles.posY = 2; }
+      }
       ensureYouTubeCCActive();
     } else if (prof.subEnabled !== undefined) {
       state.subtitles.enabled = Boolean(prof.subEnabled);
@@ -936,25 +955,22 @@
       if (video.muted) video.muted = false;
     }
 
-    state.subtitles.enabled = false;
-    state.subtitles.preset = 'bottom-center';
-    state.subtitles.posX = 50;
-    state.subtitles.posY = 88;
-    state.subtitles.brightness = 100;
-
+    // Reset Subtitles directly to Canonical Bottom Center
     state.subtitles.enabled = true;
     state.subtitles.preset = 'bottom-center';
+    state.subtitles.isCustomDrag = false;
     state.subtitles.posX = 50;
     state.subtitles.posY = 88;
     state.subtitles.brightness = 100;
     injectSubtitleStyles();
 
-    document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup, .player-timedtext, .player-timedtext-text-container').forEach(el => {
-      el.style.transform = '';
+    // Clear element inline overrides so CSS rules take cleanly
+    document.querySelectorAll('.caption-window, .ytp-caption-window-bottom, .ytp-caption-window-rollup').forEach(el => {
       el.style.left = '';
       el.style.top = '';
       el.style.bottom = '';
       el.style.right = '';
+      el.style.transform = '';
       el.style.margin = '';
       el.style.opacity = '';
       el.style.filter = '';
@@ -968,7 +984,7 @@
     state.youtube.hideShorts = false;
 
     ensureYouTubeCCActive();
-    showToast('↺ VeloxCine: Subtitles & Settings Reset to Defaults');
+    showToast('↺ VeloxCine: Subtitles Reset to Bottom Center');
   }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
